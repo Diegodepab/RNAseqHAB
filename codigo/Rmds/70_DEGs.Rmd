@@ -1,0 +1,154 @@
+## Exact test
+
+En la [prueba exacta][eTest] se sigue la misma filosofía que la prueba de la _t_ de Student  [@Robinson2008ro]: se compara la diferencia entre dos medias cuando los datos siguen una distribución binomial negativa (como es el caso de la RNA-seq a diferencia de las micromatrices/ _microarray_). 
+Se calcula para cada fila (genes) de una tabla, y se considera que es una adaptación del _exact binomial test_ cuando los valores de la fila están muy dispersos. 
+Es muy sencillo y rápido, pero deja pasar **muchísimos falsos positivos** [@Li2022cf].
+
+
+### Procedimiento {-}
+
+Vamos a comparar solo `TREAT/CTRL` y para ello definimos un vector con ambos factores que luego pasaremos a la función `exactTest()`.
+Finalmente, guardamos los datos.
+
+```{r eTest}
+pairing = c(CTRL, TREAT) # to obtain a TREAT/CTRL comparison
+eTest <- exactTest(x.filt.norm.disp, pair = pairing)
+
+# save as result data in field $table of eTest
+eTest.Tbl <- topTags(eTest, n = nrow(eTest$table))$table
+tmpText <- paste(sep = "", "exactTest_stats-", pairing[2], "vs", pairing[1], "-")
+fileName <- SaveTSV(eTest.Tbl, tmpText)
+message("**Extact test** results saved in file\n", fileName)
+
+# remove useless variables
+rm(eTest.Tbl, pairing, tmpText)
+```
+
+
+### MD plots (exact test) {-}
+
+Usaremos los umbrales de `P` y `FC` definidos en la configuración para representar los genes en una gráfica MD (equivalente a la [MA] de las micromatrices), en la que marcaremos:
+
+* los genes <span style="color:blue">reprimidos</span> en <span style="color:blue">**azul**</span>
+* los genes <span style="color:red">activados</span> en <span style="color:red">**rojo**</span>.
+
+
+```{r eTestMD, fig.width=6, fig.height=6}
+# Quatifly genes as 1 (up-regulated in red), -1 (down-regulated in blue) or 0 (non significant)
+eTest.status.p.fc <- decideTests(eTest, p.value = P, lfc = logFC)
+
+# view results in a mean-difference (MD) plot, where log-intensity ratios (differences) are ploted versus log-intensity averages (means)
+plotMD(eTest, status = eTest.status.p.fc, hl.cex = 0.5)
+# mark logFC cutoffs
+abline(h = c(-logFC, logFC), col = "magenta")
+```
+
+
+
+## Quasi-Likelihood F-tests (QLF)
+
+### About linear models
+
+[START EXPANDIBLE]: #
+`r EXPAND_bx` Expand to read about <b>linear models</b></summary>
+
+El modelo de regresión lineal (LM) es el modelo de regresión más básico, pero necesita que los datos cumplan las siguientes condiciones:
+
+* **Normalidad**: Los residuos (o errores=la diferencia entre las observaciones y las predicciones del modelo) del modelo deben seguir una distribución normal (forma de campana de Gauss). Esto se puede chequear realizando un histograma (donde debe verse una campana) o gráfico QQ (los puntos se localizan en la diagonal) con los residuos del modelo. Por ejemplo, si estamos ante una respuesta binaria los datos no serán normales ni existirá ninguna transformación útil para que lo sea. Cuando no hay normalidad, se aplicarán los ***modelos lineales generalizados*** (GLM: _Generalised Linear Models_).
+* **Homogeneidad** o **varianza constante**. Cuando la dispersión de los datos no es la misma para cada valor del predictor o variable explicativa, o sea que la dispersión debería ser la misma para todo el rango de valores ajustados. Si el incumplimiento no es demasiado serio no tendremos problema. Cuando se incumple, deberemos usar los ***modelos de mínimos cuadrados generalizados*** (GLS: _Generalised Least Squares models_).
+* **Linealidad**. La relación entre la respuesta y la variable predictora es de tipo lineal o monotónica. Para crear ajustes no lineales, se emplearán los ***modelos aditivos*** (AM: _Additive Models_).
+* **Independencia**. Si la respuesta para un determinado valor del predictor está influenciado por otro valor del predictor. Es el supuesto más delicado porque invalida las pruebas estadísticas _F_ y _t_. Generalmente incumplimos este supuesto por la naturaleza de nuestros datos, datos temporales o espaciales (los sitios más cercanos serán más parecidos entre sí respecto al resto). En este caso, los ajustes deberán seguir un ***modelo mixto*** (MM: _Mixed Model_)
+
+Existen pruebas estadísticas para medir estos factores, pero el principal problema de todos estos ajustes es que la mayoría suponen la normalidad y muchas veces no nos permiten detectar problemas de valores atípicos (_outliers_) o ausencia de linealidad. De igual forma, también tenemos otros ajustes que se pueden aplicar cuando [no se cumplen dos o más condiciones](https://www.maximaformacion.es/blog-dat/que-modelo-de-regresion-deberia-elegir/).
+
+</details> 
+[END EXPANDIBLE]: #
+
+### QLF as a GLM {-}
+
+[START EXPANDIBLE]: #
+`r EXPAND_bx` Expand to read about <b>QLF</b></summary>
+
+El [modelo lineal generalizado][GLM] ([GLM]) mencionado antes es una generalización flexible de la regresión lineal para datos con una distribución de errores que no sigue una distribución normal, o sea, que un predictor no conduce a un cambio constante en la variable de respuesta.
+Por tanto, parece útil para la RNA-seq, que sigue una [binomial negativa][BN] como se ha visto en el apartado [Dispersión en los datos][].
+
+En [edgeR] existe la posibilidad de ajustar linealmente los recuentos de las muestras mediante un método de _quasi-likelihood_ para un modelo lineal generalizado ([GLM]) de una casi probable binomial negativa (_quasi-likelihood negative binomial generalized log-linear model_) para luego hacer los contrastes. La prueba de la _F_ de Fisher que hace este [QLF] presenta ciertas mejoras en la FDR al ajustar a una [BN] que dejan pasar menos falsos positivos [@Lund2012; @Lun2016].
+
+</details> 
+[END EXPANDIBLE]: #
+
+
+### Procedimiento {-}
+
+El [QLF] se basa en las siguientes funciones:
+
+* `glmQLFit()` implementa los métodos _quasi-likelihood (QL)_ [@Lund2012; @Lun2016] para realizar el ajuste basado en el _Empyrical Bayes squeezing_ de [limma]. Se ajusta mejor a una [BN] que `glmLRT()`. Necesita que los datos tengan calculada la dispersión.
+* `glmQLFTest()` realiza _empirical Bayes quasi-likelihood F-tests_. Multiplicity correction is performed by applying the Benjamini-Hochberg method on the P-values, to control the false discovery rate (FDR)
+* `decideTestsDGE()` utiliza los valores de P y FDR para indicar los DEGs.
+* `glmTreat()` incluye un ajuste bayesiano la hacer parecerse a `treat()` de [limma]; con ello ajusta mejor la expresión diferencial la tendencia del `FC` para reducir la incertidumbre de la estimación y **devolver aún menos falsos positivos** que el test exacto visto antes e incluso que la función `glmQLFTest()`.
+
+Veamos cómo se distribuye la dispersión de la varianza, donde:
+
+* la dispersion original (_raw_) son los puntos **negros**;
+* la dispersión tras el <span style="color:red">ajuste bayesiano (_squeezed_)</span> va en <span style="color:red">**rojo**</span>;
+* la <span style="color:blue">tendencia</span> va en <span style="color:blue">**azul**</span>
+
+
+```{r glmQLfit}
+# Use filtered, normalised and "undispersed" data to fit the model
+q.filt.norm.disp.fit <- glmQLFit(x.filt.norm.disp, 
+                                 design, 
+                                 robust = TRUE) # to be more robust against outliers
+
+# A plot to visualize the distribution of QL dispersions after empirical Bayes shrinkage 
+# It plots the quarter-root QL dispersion against the average abundance of each gene. Estimates are shown for the raw (before empirical Bayes moderation), trended and squeezed dispersions.
+plotQLDisp(q.filt.norm.disp.fit)
+```
+
+Veamos la diferencia de DEG cuando se filtra por `P` y `FC`, y se usa un test que no tiene en cuenta el `logFC` (`glmQLFTest()`) y uno que sí lo tiene en cuenta (`glmTreat()`). Como `contr.matrix` es un vector con todas las comparaciones, vamos a emplear **solo la primera columna** (la primera comparación) para que el resultado sea equivalente al visto con el test exacto:
+
+```{r QLFtreat}
+# Genes differentially expressed across all samples using test()
+q.test <- glmQLFTest(q.filt.norm.disp.fit, 
+                     contrast = contr.matrix[, 1])
+q.test.dt <- decideTestsDGE(q.test, p.value = P, lfc = logFC)
+
+# Genes with significant expression across all samples using treat()
+q.treat <- glmTreat(q.filt.norm.disp.fit, contrast = contr.matrix[, 1], lfc = logFC)
+q.treat.dt <- decideTestsDGE(q.treat, p.value = P, lfc = logFC)
+
+# join both results in a single table
+QLF_results <- cbind(summary(q.test.dt), summary(q.treat.dt)[, 1] )
+colnames(QLF_results) <- c("QLF Test", "QLF Treat")
+kable(QLF_results, caption=paste0("QLF results for the contrast ", colnames(q.test.dt)[1]))
+```
+
+> **IMPORTANT:** It is clearly seen that you have less differentially expressed genes with QLF than using the exact test.
+
+### MD plots (QLF) {-}
+
+Veamos de forma gráfica las diferencias entre los dos tipos de ajustes:
+
+```{r MDplot-QLF, fig.width=9, fig.height=5}
+par(mfrow = c(1,2))
+plotMD(q.test, 
+       status = q.test.dt, 
+       hl.cex = 0.5,
+       main = paste("QLF Test:", NORM_TXT))
+abline(h = c(-logFC, logFC), col = "magenta")
+
+plotMD(q.treat, 
+       status = q.treat.dt, 
+       hl.cex = 0.5,
+       main = paste("QLF Treat:", NORM_TXT))
+abline(h = c(-logFC, logFC), col = "magenta")
+
+# otra forma de hacer la segunda gráfica:
+# plotSmear(q.treat, de.tags=rownames(q.treat)[q.treat.dt!=0])
+# abline(h = c(-logFC, logFC), col="magenta")
+```
+
+> **IMPORTANTE:** Cuando se aplica `treat()`, los genes con expresión diferencial tienen que estar más claramente por encima del umbral de `FC` definido, sobre todo cuando los datos son más ruidosos (por lo general en `logCPM < 4`. De ahí que se recomiende fijar el `FC` en el margen `1 < FC < 1,5`.
+
+
+

@@ -1,0 +1,197 @@
+## Plot every contrast
+
+Veamos el número de genes que sale con expresión diferencial en cada contraste con los distintos tipos de datos utados, y se comparará con el mejor análisis obtanido con `eBayes()`.
+
+```{r DEGsPerContrastTable}
+# join per rows the summary tables of eBayes and treat, with an intermediate title 
+tmp <- rbind(EBAYES="", summary(eB.filt.norm.status.p.fc), 
+             RAW_t = "", summary(dt.raw),
+             FILT_t = "", summary(dt.filt),
+             TREAT="", summary(dt.norm))
+# display the summary table
+kable(as.data.frame(tmp), align ="r", caption = "Orientative number of DEGs per contrast depending on the analysis")
+```
+
+Representemos las gráficas MD en paralelo para `eBayes()`y `treat()`, puesto que los candidatos de `treat()` estarán siempre contenidos en `eBayes()`.
+
+```{r DEGsPerContrastPlots, fig.width=4.5, fig.height=5, out.width=c('50%', '50%'), fig.show='hold'}
+# a variable for the number of contrasts to study.
+NUM_CONTRASTS <- length(allContrasts)
+i <- 1
+for (i in 1:NUM_CONTRASTS) {
+  # plot for eBayes
+  plotMD(v.filt.norm.fit.eB, 
+         column = i,
+         status = eB.filt.norm.status.p.fc[ ,i], 
+         main = paste0("eBayes() - ", colnames(eB.filt.norm.status.p.fc)[i]),
+         xlim = c(-8, 12), 
+         ylim = c(-10, 10),
+         hl.cex=0.5)
+  # mark logFC cutoffs
+  abline(h = c(-logFC, logFC), col = "magenta")
+
+  # plot for treat
+  plotMD(v.filt.norm.fit.treat, 
+         column = i,
+         status = dt.norm[ ,i], 
+         main = paste0("treat() - ", colnames(v.filt.norm.fit.treat)[i]),
+         xlim = c(-8, 15), 
+         ylim = c(-10, 10),
+         hl.cex=0.5)
+  # mark logFC cutoffs
+  abline(h = c(-logFC, logFC), col = "magenta")
+}
+```
+
+
+
+## Saving DEGs {.tabset}
+
+Vamos a guardar los datos de los tres análisis realizados: test exacto, QLF y GLM (voom+limma).
+
+
+### After exact test {-}
+
+Recuerda que solo se ha analizado el primer contraste de la lista.
+
+```{r save_DEGs_eT}
+# Create results table of DE genes form exactTest
+table.to.save.eT <- topTags(eTest, n = nrow(eTest$table))$table
+# save data
+fileName <- SaveTSV(table.to.save.eT, "Allgenes-eT-")
+
+# show counts of the first 100 genes in rmarkdown
+datatable(head(table.to.save.eT, n = 50L), rownames = TRUE, filter="top", options = list(pageLength = 5, scrollX=T) )
+```
+
+Data saved in _`r fileName`_.
+
+
+
+
+### After QLF {-}
+
+Recuerda que solo se ha analizado el primer contraste de la lista.
+
+```{r save_DEGs_QLF}
+# DEG table from QLF using topTreat will result in the following columns:
+table.to.save.qlf <- topTags(q.treat, n = nrow(q.treat$table))$table
+# save data
+fileName <- SaveTSV(table.to.save.qlf, "Allgenes-QLF-")
+
+# show counts of the first 100 genes in rmarkdown
+datatable(head(table.to.save.qlf, n = 50L), rownames = TRUE, filter="top", options = list(pageLength = 5, scrollX=T) )
+```
+
+Data saved in _`r fileName`_.
+
+
+
+
+### After GLM {-}
+
+Se grabarán los valores de cada gen en cada contraste en función de cómo se obtuvieron:
+
+* `topTable()` para los resultados obtenidos con `eBayes()`
+* `topTreat()` para los resultados obtenidos con `treat()`.
+
+De esta manera se genera **un fichero por contraste** con las siguientes columnas:
+
+* ***logFC*** (como _Coef_ más abajo): global estimate of the log2-fold-change over all samples
+* ***AveExpr***: average log2-expression for the probe over all samples
+* ***t***: moderated _t_-statistic
+* ***P.Value*** (como _p.value_ más abajo): raw _P_-value
+* ***adj.P.Val*** (como _p.value.adj_ más abajo): adjusted _P_-value, also known as _q_-value
+* ***B***: log-odds that the gene is differentially expressed, only when `topTable()` is used.
+
+Guardemos primero los DEGs obtenidos con `eBayes()`:
+
+```{r save_eBayesDEGs_GLM}
+
+# only DEGs
+i <- 1
+allFiles <- vector()
+for (i in 1:NUM_CONTRASTS) {
+  theContrast <- colnames(v.filt.norm.fit.eB$contrasts)[i]
+  degs.to.save.eB <- topTreat(v.filt.norm.fit.eB, 
+                               coef = i, 
+                               adjust.method = "BH",
+                               p.value = P,
+                               lfc = logFC, 
+                               resort.by = "logFC",
+                               number = Inf)
+  fileName <- SaveTSV(degs.to.save.eB, paste0("DEGs_", theContrast, "_GLM-eB-P-", P, "_FC-", FC, "_"))
+  allFiles <- c(allFiles, fileName)
+}
+  message("DEGs for every contrast after GLM-eBayes were saved in files ", "\n", toString(allFiles))
+```
+
+Guardamos a continuación  tanto los DEG como todos los genes los obtenidos con `treat()`:
+
+```{r save_treatDEGs_GLM}
+# only DEGs
+i <- 1
+allFiles <- vector()
+for (i in 1:NUM_CONTRASTS) {
+  theContrast <- colnames(v.filt.norm.fit.treat$contrasts)[i]
+  table.to.save.glm_treat <- topTreat(v.filt.norm.fit.treat, 
+                               coef = i, 
+                               adjust.method = "BH",
+                               p.value = P,
+                               lfc = logFC, 
+                               resort.by = "logFC",
+                               number = Inf)
+  fileName <- SaveTSV(table.to.save.glm_treat, paste0("DEGs_", theContrast, "_GLM-Treat_P-", P, "_FC-", FC, "_"))
+  allFiles <- c(allFiles, fileName)
+}
+  message("DEGs for every contrast after GLM-treat were saved in files ", "\n", toString(allFiles))
+
+# all genes
+i <- 1
+allFiles <- vector()
+for (i in 1:NUM_CONTRASTS) {
+  theContrast <- colnames(v.filt.norm.fit.treat$contrasts)[i]
+  table.to.save.glm_treat <- topTreat(v.filt.norm.fit.treat, 
+                               coef = i, 
+                               adjust.method = "BH",
+                               resort.by = "logFC",
+                               number = Inf)
+  fileName <- SaveTSV(table.to.save.glm_treat, paste0("Allgenes_", theContrast, "_GLM-Treat_"))
+  allFiles <- c(allFiles, fileName)
+}
+message("All genes for every contrast after GLM-treat were saved in files ", "\n", toString(allFiles))
+```
+
+
+
+
+### After GLM (all-in-one) {-}
+
+Se guardará **un único fichero** donde se tendrán todos los parámetros estadísticos calculados para cada contraste. Esto se consigue fácilmente con la función `write.fit()` de [limma]. 
+
+La primera columna de la tabla será ***AveExpr***, que es el log2 del promedio de la intensidad de expresión del gen. Las siguientes columnas se repiten una vez para cada contraste:
+
+* ***Coef*** (equivale a _logFC_):  coefficients of contrasts as log2-fold-changes, 
+* ***t***: moderated _t_-statistics, 
+* ***P.value*** (equivale a _P.Value_): _t_-statistic _P_-values, 
+* ***P.value.adj*** (equivale a _adj.P.Val_): _P_-values after multitesting adjustment
+
+A continuación aparecerán dos columnas con los valores del estadístico _F_:
+
+* ***F***: el valor estimado;
+* ***F.p.value***: _F_-statistic _P_-values:
+
+Las últimas columnas corresponden a los ***Results*** para cada contraste que, como se indicó antes, aparecerán valorados con -1, 0 y +1 (down-regulated, not-significant, up-regulated) en referencia a la condición que aparece primero en el término del contraste (por ejemplo, en un contraste `TREAT-CTRL`, hacen referencia a si suben (+1) o bajan (-1) en la condicion `TREAT`).
+
+
+```{r save_DEGs_GLM2}
+# GLM, calculate adjustments while saving
+fileName <- paste(sep = "", WD, "Allcontrasts_GLM-Treat_P-", P, "_FC-", FC, "_", HOY, ".tsv")
+write.fit(v.filt.norm.fit.treat, 
+          dt.norm, 
+          file = fileName, 
+          digits = 6, 
+          adjust = "BH")
+
+message("Te results of the experiment for all contrasts were saved in ", fileName)
+```

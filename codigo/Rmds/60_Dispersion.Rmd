@@ -1,0 +1,39 @@
+## Estimación de la dispersión
+
+Para comprobar que los datos estén cada vez menos dispersos emplearemos la función `estimateDisp()` de [edgeR], que nos devolverá la dispersión de los recuentos de los genes en función de las comparaciones que se van a hacer (detallados en la variable `design`).
+A partir de la dispersión de cada gen (_genewise dispersion_), se estima la dispersión de la varianza $\alpha$, que se incluirá en el campo `common.dispersion` del objeto.
+En [edgeR] tiene especial importancia el BCV (_biological coefficient of variation_) [@McCarthy2012] basado en el coeficiente de variación ([CV]), que no es más que la raíz cuadrada de $\alpha$. 
+
+```{r dispersionEstimates}
+# Produce a matrix of pseudo-counts to estimate the common and tagwise dispersions
+# use a define 'design' to avoid the switch to the classic mode
+x.disp <- estimateDisp(x, design = design) # raw data
+x.filt.disp <- estimateDisp(x.filt, design = design) # filtered data
+x.filt.norm.disp <- estimateDisp(x.filt.norm, design = design) # filt + norm
+```
+
+**Tipo de datos** | **Dispersión** | **BCV**
+:---: | :------: | :----:
+Raw                     | `r x.disp$common.dispersion`          | `r sqrt(x.disp$common.dispersion)`
+Filtered                | `r x.filt.disp$common.dispersion`     | `r sqrt(x.filt.disp$common.dispersion)`
+Normalised and filtered | `r x.filt.norm.disp$common.dispersion` | `r sqrt(x.filt.norm.disp$common.dispersion)`
+
+Cuando `BCV < 0.3-0.4`, estamos seguramente ante réplicas técnicas o ante un experimento muy bien hecho [@Chen2016aa].
+
+Lo ideal es que, a medida que filtramos y normalizamos, disminuya la dispersión. 
+Si no es así, el tratamiento que estamos haciendo está empeorando los datos originales y tendrán menos sentido biológico.
+
+
+## Visualización de la dispersión
+
+The genewise BCV plots against gene abundance allows to view the common (ideal), trended and genewise BCV estimates, and infer if biological variation depdends on gene abundance. 
+Trended dispersion should approach a common line.
+
+```{r BCVplots, fig.width=5, fig.height=5, out.width=c('33%', '33%', '33%'), fig.show='hold'}
+plotBCV(x.disp, main = RAW_TXT) 
+plotBCV(x.filt.disp, main = FILT_TXT) 
+plotBCV(x.filt.norm.disp, main = NORM_TXT) 
+
+# remove useless variables
+rm(x.disp, x.filt.disp)
+```

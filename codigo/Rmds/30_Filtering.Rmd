@@ -1,0 +1,207 @@
+## Genes sin expresión
+
+Los genes que no se expresen (`counts == 0`) en ninguna muestra/condición (o sea, en ninguna columna) no tienen ningún interés biológico para el análisis y es mejor quitarlos.
+
+```{r filter1, results='hold'}
+# total number of genes 
+total_genes <- dim(x)[1]
+# Looking for genes expressed in all samples 
+filtered0 <- table(rowSums(x$counts == 0) == 0)
+kable(filtered0, col.names = c("Expressed in all samples (TRUE)", "Amount"))
+
+# Counting genes not expressed at all in all samples
+COL_NUMBER <- length(COL_NAMES)
+all0 <- table(rowSums(x$counts == 0) == COL_NUMBER)
+kable(all0, col.names = c("Not expressed in any sample (TRUE)", "Amount"))
+```
+
+**Resumen**:
+
+Tipo de expresión         | Número de genes
+---: | :---
+En _todas_ las muestras   | `r filtered0[["TRUE"]]`
+En _ninguna_ muestra      | `r all0[["TRUE"]]`
+En _al menos una_ muestra | `r total_genes - filtered0[["TRUE"]] - all0[["TRUE"]]`
+
+
+
+
+
+## Genes ruidosos
+
+Consideramos _genes ruidosos_ los que se expresan poco en todas las muestras. 
+¿Cuánto es poco? 
+Dependerá de lo estrictos que queramos ser.
+
+
+### Método menos riguroso {-}
+
+En primer lugar, conviene determinar el número mínimo de muestras en las que esperamos que haya una expresión fiable. Para ello nos basaremos en la información de la constante `EXP_FACTORS` para determinar la condición experimental en la que hay menos réplicas. 
+
+```{r numRep}
+MIN_REPL <- min(table(EXP_FACTORS))
+print(MIN_REPL)
+```
+
+Ahora usaremos la función `filterByExpr` de `edgeR` para el nuevo objeto `x.filt2`. Esta función elimina los genes que no tengan al menos 10 cuentas (valor por defecto del argumento `min.count` [@Chen2016aa]) en el número mínimo de condiciones experimentales que hemos determinado en `MIN_REPL`. 
+
+
+```{r filter2_low, results='hold'}
+keep.exprs <- filterByExpr(x, min.count = 10, large.n = MIN_REPL)
+filtered2 <- table(keep.exprs) # see in TRUE how many genes pass the filter
+x.filt2 <- x[keep.exprs, , keep.lib.sizes = FALSE]  # con el último argumento se recalcula el tamaño de las librerías
+
+kable(filtered2, col.names = c("Low expressed genes in all samples", "Amount"))
+```
+
+Se estudiarán los genes de la fila TRUE.
+
+### Método riguroso {-}
+
+Queremos que el gen se exprese una cantidad **fiable** en al menos una de las réplicas a analizar. 
+No se pueden usar las `counts`  porque dependen del número de lecturas de la librería.
+En su lugar usaremos las [CPM] (cuentas por millón) para que dicho tamaño no afecte, y llamaremos a este nuevo objeto `x.cpm`. Pero en lugar de hacerlo sobre la variable `x` original, vamos a hacerlo sobre lo que acabamos de filtrar, que está en la variable `x.filt2`.
+
+```{r x.cpm}
+x.cpm <- cpm(x.filt2)
+```
+
+Si la cantidad fiable la fijamos en `CPM > 0` estaríamos haciendo lo mismo que en la filtración básica, así que debemos subirlo. Lo mínimo es que este valor de `MIN_CPM` sea al menos de 1 CPM (el definido por defecto en el fichero de configuración), pero se puede subir incluso a 10 si queremos ser muy estrictos.
+
+```{r min.cpm}
+MIN_CPM
+MIN_CPM10 <- 10
+```
+
+Ya podemos filtrar con más rigor para crear el objeto `x.filt`:
+
+```{r filter2_high}
+keep.exprs <- rowSums(x.cpm > MIN_CPM) >= MIN_REPL
+filteredOK <- table(keep.exprs) # see in TRUE how many genes pass the filter
+x.filt <- x.filt2[keep.exprs, , keep.lib.sizes = FALSE]
+
+kable(filteredOK, col.names = c("Expressed less than MIN_CPM", "Amount"))
+
+# probemos el muy muy estricto
+keep.exprs <- rowSums(x.cpm > MIN_CPM10) >= MIN_REPL
+filteredOK10 <- table(keep.exprs)
+kable(filteredOK10, col.names = c("Expressed less than MIN_CPM10", "Amount"))
+```
+
+Comparemos los métodos: 
+
+Genes | Recuento
+----: | :-------
+Total                               | `r total_genes`
+No se expresan nunca                | `r all0[["TRUE"]]`
+Útiles para estudiar la expresión   | `r filtered0[["TRUE"]]`
+Ídem tras `filterByExpr`            | `r filtered2[["TRUE"]]`
+Ídem tras `CMP >` `r MIN_CPM`       | `r filteredOK[["TRUE"]]`
+Ídem tras `CMP >` `r MIN_CPM10`     | `r filteredOK10[["TRUE"]]`
+
+Para la visualización de los datos, hay que calcular el logaritmo de las [CPM]; de paso, borramos variables que ya no necesitaremos.
+
+```{r cpm-lcmp}
+# borramos variables inútiles
+rm(filtered0, all0, filtered2, filteredOK, filteredOK10, keep.exprs, MIN_CPM10, total_genes)
+
+# Calculamos CPM y logCPM de los objetos anteriores
+# (ya habíamos calculado antes x.cpm)
+x.lcpm <- cpm(x, log = TRUE)
+
+# tras la filtración poco rigurosa
+x.filt2.lcpm <- cpm(x.filt2, log = TRUE)
+x.filt2.cpm <- cpm(x.filt2)
+
+# tras la filtración rigurosa
+x.filt.lcpm <- cpm(x.filt, log = TRUE)
+x.filt.cpm <- cpm(x.filt)
+```
+
+
+
+
+## Visualización del filtrado {.tabset}
+
+### Density plots
+
+The density of logCPM (`lcpm`) values for **raw** pre-filtered data, **stringent** filtering, and low stringent filtering (**filterByExpr()**) are shown for each sample.
+Dotted vertical line marks the log-CPM of zero threshold (equivalent to a CPM value of 1) used in the stringent filtering step. 
+Dashed vertical line marks the main zone of gene removal. 
+Library `RColorBrewer` was used to individualise samples.
+
+```{r cutoffs}
+# To define the same range of density for all data
+L <- mean(x$samples$lib.size) * 1e-6
+M <- median(x$samples$lib.size) * 1e-6
+# a cutoff line to sepparate useful from useless genes
+genes.cutoff <- log2(10/M + 2/L)
+# remove useless variables
+rm(L, M)
+```
+
+Y ahora representamos las tres gráficas y luego borramos de la RAM los datos generados con el filtrado poco riguroso
+
+```{r densityplots, fig.width=4, fig.height=5, out.width=c('33%', '33%', '33%'), fig.show='hold'}
+PlotGeneDensity(x.lcpm, genes.cutoff, "Raw data")
+PlotGeneDensity(x.filt2.lcpm, genes.cutoff, "filterByExpr()")
+PlotGeneDensity(x.filt.lcpm, genes.cutoff, "Stringent filtering")
+
+# remove useless objects to release RAM
+rm(genes.cutoff, x.filt2, x.filt2.lcpm, x.filt2.cpm)
+```
+
+> **IMPORTANT:** After filtering, density lines should be nearly identical following a gauss-shaped profile. Peak at very low logCPM should disappear.
+
+
+### New library sizes and MDS
+
+Para comparar sobre el efecto que ha tenido el filtrado sobre el tamaño de las librerías y las gráficas de [MDS] y [PCA], las repetimos con los datos filtrados. En algunos casos de datos muy malos, se puede obtener un error en el siguiente _chunk_ relacionado el escalado en la función `prcomp()`. Como se indica en el comentario, se soluciona añadiendo `thisScale = FALSE` en la llamada de `PlotMyPCA()`.
+
+```{r sizesMDSplotsFiltered, fig.width=6, fig.height=5, out.width=c('33%', '33%', '33%'), fig.show='hold'}
+
+# Reconstruct libsizes after filtering.
+# These new, effective library sizes will be used  in all downsteam analyses
+x.filt$samples$lib.size <- colSums(x.filt$counts)
+
+# plots
+barplot(x.filt$samples$lib.size * 1e-6, 
+        names = COL_NAMES, 
+        col = EXP_COLORS,
+        ylab = "Library size (millions)", 
+        las = 2, 
+        main = "New library sizes after filtering") 
+
+plotMDS(x.filt, 
+        col = EXP_COLORS, 
+        main = "Relative similarities after filtering")
+
+# common legend
+legend("topleft", legend = as.vector(UNIQ_FACTORS), fill = unique(EXP_COLORS))
+
+# if RSeqHAB reports error in this chunk, add "thisScale = FALSE" when calling PlotMyPCA
+pca_sum <- PlotMyPCA(x.filt$counts, "PCA of filtered data")
+```
+
+Comprobamos que el tamaño de las librerías a penas se ha modificado con respecto a  la [figura original](#origSizeMDS), lo que es lógico, porque se han eliminado genes con poco o ningún recuento.
+Del mismo modo, las muestras se siguen agrupando igual, incluso mejor, que en la [figura original](#origSizeMDS) porque las muestras ML están ahora más juntas (o sea, que se parece más que antes de eliminar los genes poco expresados).
+
+
+## Save filtered counts 
+
+Gene counts after filtering are saved in a **.tsv** (_tab separated values_) file where gene codes are in rows and experimental data in columns.
+
+```{r datatablefiltered}
+fileName <- SaveTSV(x.filt$counts, "filteredData-")
+message(fileName, "\n", "contains filtered gene counts")
+```
+
+Veamos que las 10 primeras líneas de las tablas antes y después de filtrar ya son claramente diferentes
+
+```{r comparetables}
+# Raw data
+kable(head(x$counts, n = 10L))
+
+# Alfer filtering off genes
+kable(head(x.filt$counts, n = 5))
+```

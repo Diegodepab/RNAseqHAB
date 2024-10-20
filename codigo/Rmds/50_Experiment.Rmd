@@ -1,0 +1,45 @@
+## The design as a matrix
+
+Lo primero es crear una matriz en la que se indique, para dada muestra (filas), a qué condición experimental (de la constante `EXP_FACTORS`) está asignada.
+
+```{r design}
+# define el diseño en función de los grupos definidos al cargar los datos
+design <- model.matrix(~0+EXP_FACTORS)
+# retiramos ahora la palabra "EXP_FACTORS" de cada columna
+colnames(design) <- gsub("EXP_FACTORS", "", colnames(design))
+# Mostramos el diseño experimental
+kable(design, align = "c", caption = "Table describing the experimental design")
+```
+
+## Comparaciones (contrastes)
+
+Ahora hay definir los contrastes, o sea, qué comparaciones de dos en dos se van a realizar. Para ello utilizaremos el contenido de `CONTRASTS` que definimos en el fichero de configuración y que internamente se ha convertido en la variable `allContrasts`. Necesitamos también el `design` definido antes.
+
+```{r contrastes, collapse=TRUE}
+contr.matrix <- makeContrasts(contrasts = allContrasts, levels = colnames(design))
+# Veamos los contrastes:
+kable(contr.matrix, align = "c", caption = "Table of contrast that will be analysed")
+```
+
+El significado de los valores de la tabla anterior es el siguiente:
+
+* **0** indica que la muestra de esa fila no se utilizará en la comparación indicada en la columna.
+* **1** indica que la muestra estará en el numerador del cociente, o sea, que los genes con `logFC` positivo se sobreespresarán en ella
+* **-1** indica que la muestra estará en el denominador del cociente, o sea, que los genes con `logFC` positivo se subespresarán en ella
+
+<!-- Finalmente, con los GLM también podemos analizar **covariantes**, es decir si hay dos o más factores que interaccionan. -->
+<!-- Para ello, además de los factores experimentales incluidos en `x$samples$group`, teníamos que haber añadido otras columnas de factores (tipo celular, valor de RIN, edad, tiempo de muestreo, etc.). -->
+<!-- De esta forma, añadiríamos cada uno de estos factores (en el ejemplo, `batch` y `rin`) en el cálculo del diseño: -->
+
+<!-- ```{r covars, results='hold'} -->
+<!-- # batch <- sample(c("one", "two"), 9, replace = TRUE) -->
+<!-- # rin <- sample(5:9, 9, replace = TRUE) -->
+<!-- # design2 <- model.matrix(~0 + x.filt.norm$samples$group + batch + rin) -->
+<!-- # design2 -->
+<!-- # tmp <- estimateDisp(x.filt.norm, design = design2) -->
+<!-- # fit <- glmFit(tmp, design2) -->
+<!-- # lrt <- glmLRT(fit, coef = 2) # coef indica la columna del diseño a analizar -->
+<!-- # topTags(lrt) -->
+
+<!-- # rm(batch, rin, design2, tmp, fit, lrt) -->
+<!-- ``` -->
