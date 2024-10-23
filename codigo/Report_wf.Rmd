@@ -1,61 +1,60 @@
 ---
 title: "`r PROJECT_NAME`"
-subtitle: "Using `r SOFT_NAME` pipeline; updated on 8-XI-2023"
-author: "M. Gonzalo Claros - GISa: Herramientas y Algoritmos en Bioinformática"
+subtitle: "Using `r SOFT_NAME` pipeline; updated on 17-X-2024"
+author: "Diego de Pablo, estudiante de herramientas y Algoritmos en Bioinformática, UMA"
 date: "`r format(Sys.time(), '%A %d, %B %Y. %H.%M.%S')`"
 output: 
  html_document:
-    theme: cerulean
+    theme: spacelab
     number_sections: false
     toc: true
     toc_float: true
     code_folding: "show"
 bibliography: Refs_RNAseqHAB.bib
 link-citations: true
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
 
+```{=html}
+<style>
+/* Estilos generales */
+h1, h2, h3 {
+    color: #000080; /* Color de los títulos */
+}
 
-# Credits and environment
+p {
+    font-family: Arial, sans-serif; /* Fuente del texto */
+    line-height: 1.6; /* Espacio entre líneas */
+}
 
-**`r SOFT_NAME`** es un marco de trabajo para expresión diferencial por RNA-seq [@Wang2009], pero al que se pueden enganchar muchos otros programas. Diseñado para las clases de Herramientas y Algoritmos en Bioinformática de la Univesidad de Málaga.
+/* Estilos personalizados para detalles */
+.custom-details {
+    border: 1px solid #1E90FF; /* Color del borde azul */
+    border-radius: 5px;
+    background-color: #f0f8ff; /* Fondo azul claro */
+    padding: 10px;
+    margin: 10px 0;
+}
 
-En este ejemplo, vamos a aprender a cargar los datos hasta obtener una **tabla de recuentos** (filas/genes x columnas/tratamientos), para acabar con una **lista de genes con expresión diferencial** [@Oshlack2010;@Marioni2008], pasando por todas las etapas intermedias y la demostración de por qué son necesarias.
+.custom-details summary {
+    font-weight: bold;
+    color: #1E90FF; /* Color del texto azul */
+    cursor: pointer;
+}
 
-_`r okMsg`_. You can use AS IS without any warrants.
-
-
-| Environment variables        | Value |
-| :---- | :--- |
-| **Workflow** name and version | `r SOFT_NAME` v. `r VERSION_CODE` |
-| Run **date & time**           | `r HOY` |
-| **`r COMPUTER`**              | `r R.version$platform` |
-|                               | `r COMP_DETAILS` |
-| **R** version                 | `r R.version.string` |
-| **BioConductor** version      | `r VERSION_BIOC` |
-| **User**                      | `r YO` |
-| PATH to **results**           | `r WD` |
-|                               |  |
-| **Customisable environment**: |  |
-| Packages update               | `r PKG_UPDATE` |
-| PATH to **code** files        | `r SOURCE_DIR` |
-| **Verbose** report            | `r VERBOSE_MODE` |
-
-
-Customised parameters           | Value
-:---| :---
-PATH to **data** files          | `r DATA_DIR`
-Data **files**                  | `r toString(DATA_FILES)`
-**Chars to remove** in file names | `r CHARS_TO_REMOVE`
-Columns to read                 | `r toString(COLUMNS_TO_READ)`
-**Exp. factors** by column      | `r  toString(EXP_FACTORS)`
-**Control** (reference)         | `r CTRL`
-First **treatment**             | `r TREAT`
-All **contrasts** to analyse    | `r toString(allContrasts)`
-**CPM** threshold               | `r MIN_CPM`
-**Fold-change** threshold       | `r FC` (**logFC = `r logFC`**)
-**P-value** threshold           | `r P`
-
-Ahora hay código de markdown oculto donde se definen variables para crear bloques de colores y también salidas coloreadas para los mensajes de `stop(), warning()` y `message()`.
+/* Estilos para el recuadro azul */
+.blue-alert {
+    border: 1px solid #1E90FF; /* Borde azul */
+    background-color: #E0F7FF; /* Fondo azul claro */
+    color: #007ACC; /* Color del texto */
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+</style>
+```
 
 ```{r RmdSetup, include = FALSE}
 opts_chunk$set(echo = VERBOSE_MODE)
@@ -82,7 +81,6 @@ knitr::knit_hooks$set(
 )
 ```
 
-
 ```{r inLineAlertSetup, include = FALSE}
 # define ALERT BOXES with colours. 
 # Write </div> at the end of the sentence
@@ -103,11 +101,54 @@ EXPAND_bx <- '<details  style="background-color: SeaShell;
                  border-radius: 5px; 
                  padding: 10px 10px 10px 10px;">
 <summary markdown="span" style="background-color: mintCream; 
-                 color: darkGreen; 
+                 color: darkBlue; 
                  padding: 3px 2px 3px 2px;">'
 ```
 
-Por útlimo, se definen los textos que llevan asociado un enlace y el despliegue del significado  la sigla.
+# Credits and environment
+
+Este trabajo fue realizado gracias a la tutela de M. Gonzalo Claros, quien impartió clases necesarias para entender el funcionamiento de los códigos a usar, además de facilitarnos las diversas herramientas de bioinformática, como mi intención es disminuir todo contenido superfluo, eliminaré algunos espacios que no considero necesarios, y en aquellos casos donde considero que no debería borrar la información pero puede llegar a ser muy ostentoso conteniendo mucha información que para una lectura tenga poca información los guardaré en un cuadro expansible como el siguiente:
+
+`r EXPAND_bx` Expande más si quieres leer sobre <b>Environment</b>
+
+</summary>
+
+*`r okMsg`*.
+You can use AS IS without any warrants.
+
+| Environment variables         | Value                             |
+|:------------------------------|:----------------------------------|
+| **Workflow** name and version | `r SOFT_NAME` v. `r VERSION_CODE` |
+| Run **date & time**           | `r HOY`                           |
+| **`r COMPUTER`**              | `r R.version$platform`            |
+|                               | `r COMP_DETAILS`                  |
+| **R** version                 | `r R.version.string`              |
+| **BioConductor** version      | `r VERSION_BIOC`                  |
+| **User**                      | `r YO`                            |
+| PATH to **results**           | `r WD`                            |
+|                               |                                   |
+| **Customisable environment**: |                                   |
+| Packages update               | `r PKG_UPDATE`                    |
+| PATH to **code** files        | `r SOURCE_DIR`                    |
+| **Verbose** report            | `r VERBOSE_MODE`                  |
+
+| Customised parameters             | Value                          |
+|:----------------------------------|:-------------------------------|
+| PATH to **data** files            | `r DATA_DIR`                   |
+| Data **files**                    | `r toString(DATA_FILES)`       |
+| **Chars to remove** in file names | `r CHARS_TO_REMOVE`            |
+| Columns to read                   | `r toString(COLUMNS_TO_READ)`  |
+| **Exp. factors** by column        | `r  toString(EXP_FACTORS)`     |
+| **Control** (reference)           | `r CTRL`                       |
+| First **treatment**               | `r TREAT`                      |
+| All **contrasts** to analyse      | `r toString(allContrasts)`     |
+| **CPM** threshold                 | `r MIN_CPM`                    |
+| **Fold-change** threshold         | `r FC` (**logFC = `r logFC`**) |
+| **P-value** threshold             | `r P`                          |
+
+</details> 
+[END EXPANDIBLE]: #
+
 
 [Global links setup]: #
 
@@ -148,231 +189,119 @@ Por útlimo, se definen los textos que llevan asociado un enlace y el despliegue
 ***
 
 
+------------------------------------------------------------------------
 
 # Load data
 
-Load data file(s) and convert it(them) in a `DGEList` object.
+Se carga archivos de expresión génica en un objeto DEGlist, asigna colores a factores experimentales para representaciones gráficas, y genera visualizaciones como tamaños de librerías, gráficos de escalamiento multidimensional (MDS) y análisis de componentes principales (PCA). Además, guarda los conteos sin procesar en un archivo .tsv.
 
 ```{r, child='Rmds/20_Load.Rmd'}
 ```
 
-***
+------------------------------------------------------------------------
 
+# Gene filtering {#gene-filtering}
 
-
-# Gene filtering
-
-En un ser vivo que tenga unos 20 000 genes, lo normal es que en un análisis nos encontremos **entre 9 000 y 20 000 genes** cuya expresión merece la pena ser analizada.
+Este apartado se centra en el **filtrado de datos de expresión génica**. En la sección _"Genes sin expresión"_, se identifican y eliminan genes que no se expresan en ninguna muestra, presentando estadísticas sobre los genes totales y los expresados. Luego, en _"Genes ruidosos"_, se describen dos métodos para filtrar genes con baja expresión: uno menos riguroso que utiliza la función `filterByExpr` de `edgeR` y otro más estricto que se basa en **cuentas por millón** (`CPM`) para asegurar que los genes se expresen de manera confiable en al menos una réplica. Después de filtrar, se visualizan las densidades de _logCPM_ para evaluar la calidad de los datos y se comparan los tamaños de las librerías y las gráficas de MDS y PCA antes y después del filtrado. Finalmente, se guardan los conteos filtrados en un archivo .tsv y se comparan las primeras líneas de los datos originales y filtrados para mostrar las diferencias.
 
 ```{r, child='Rmds/30_Filtering.Rmd'}
 ```
 
-
-***
-
-
+------------------------------------------------------------------------
 
 # Normalización
 
-[START EXPANDIBLE]: #
-`r EXPAND_bx` Expand to read about <b>normalisation</b></summary>
 
-**Normalisation** typically means rescaling values of different samples into the same range of mean ($\bar{x}$ or $\mu$) and standard deviation ($\sigma$). When the rescaling is to $\bar{x} = 0$ and $\sigma = 1$, it is called **standardisation**. The difference can be seen in the following figure:
+e utiliza la función `calcNormFactors()` para calcular factores de escalado que minimizan las diferencias de logFC, normalizando los datos filtrados mediante **TMM**. Los factores de normalización se visualizan en *diagramas de caja* para detectar valores atípicos. La comparación de `logCPM` antes y después de la normalización busca mayor homogeneidad, observándose alineación de medianas y cuartiles tras el proceso. Luego, se evalúa la similitud entre muestras con **MDS** y **PCA**, y se guardan los datos normalizados en formato `.tsv` para futuros análisis.
 
-![Normalisation vs standardisation](https://miro.medium.com/max/4800/1*dZlwWGNhFco5bmpfwYyLCQ.png)
-
-This procedure is require to enable sample comparison (it will not be necessary only when genes in only one sample are compared). Experience with microarray data has demonstrated that normalization is a critical and obligate component of the processing pipeline for an accurate estimation and detection of differential expression (DE). More recently, an exhaustive comparison revealed that normalized counts are the best choice for the analysis of RNA-seq data across samples since it exhibits **greater comparability** among replicate samples and are **more robust to technical artifacts** [@Zhao2021wp]. In fact, the aim of normalization is to remove systematic technical effects that occur in the data to ensure that technical bias has minimal impact on the results [@Robinson2010;@Liu2019]. It implies the assumption that most genes do not present DE, having similar read counts across samples.
-
-Normalisation methods have been compared many times, resulting in **TMM** (Trimmed Mean of M-values) method being the most robust, simple and effective method for estimating relative RNA production levels from RNA-seq data [@Lin2016;@Tam2015]. TMM normalizes across samples by finding a subset of genes whose variation is mostly due to technical rather than biological factors. It relies on `calcNormFactors()` function from [edgeR] package. TMM method is so robust against deviations from statistical assumption that up to about 30% of DE in one direction does no affect the result. Another good method is based on functions `estimateSizeFactors()` and `sizeFactors()` from the `DESeq2` package [@Liu2019]. 
-
-
-In TMM, los genes poco expresados van a alterar mucho el comportamiento de los muy expresados y por eso se han eliminado [antes][Gene filtering]. 
-Si por casualidad tus muestras no presentan un número similar de genes sobrexpresados y reprimidos, estarías incumpliendo los criterios estándares de normalización y tendrías que recurrir a una normalización de datos sesgados [@Liu2019].
-
-Genes from the same sample can change their count due to the transcript length: longer transcripts will receive more mapped reads. The classical method to normalise this effect is the calculation of RPKM (Reads Per Kilobase of transcript per Million fragments mapped) or TPM (Transcripts Per Million). Since this intuitive calculations alter the biological information, the use of RPKM and TPM should be considered only when you are comparing transcript expression within one sample. If you need them, TPM is the best choice [@Johnson2022fn].
-
-However, a recent report indicates that TMM and DESeq2 are not appropriate for co-expression analyses since between-sample normalization has the biggest impact in co-expression [@Johnson2022fn]. Authors propose that counts adjusted by size factors produce networks that most accurately recapitulate known tissue-naive and tissue-aware gene functional relationships, being CTF (Counts adjustment with TMM Factors) or in second place CUF (Counts adjustment with Upper quartile Factors ) the preferred methods. [CTF](https://github.com/krishnanlab/RNAseq_coexpression) is simply calculated as:
-
-</details> 
-[END EXPANDIBLE]: #
 
 ```{r, child='Rmds/40_Normalising.Rmd'}
 ```
 
-
-
-***
-
-
+------------------------------------------------------------------------
 
 # Define el experimento
 
-Habrás comprobado que **los datos filtrados y normalizados son los que mejor se comportan**.
-Por tanto, ha llegado el momento de definir matemáticamente el experimento para así diseñar las comparaciones que se analizarán
-Abordaremos todas las comparaciones (contrastes) que has definido en el fichero `cofigure_wf.R`, en los que una condición será el control (`CTRL`) y las demás serán tratamientos (`TREATx`).
+El experimento comienza creando una matriz de diseño que asigna a cada muestra su condición experimental mediante `EXP_FACTORS` y `model.matrix()`, ajustando los nombres de las columnas para mayor claridad. Luego, se definen los contrastes necesarios para las comparaciones entre condiciones experimentales, basados en allContrasts del archivo de configuración. En la matriz de contrastes, **0** indica exclusión, **1** incluye la muestra en el numerador y **-1** en el denominador. Esto formaliza el diseño y establece comparaciones entre el control (`CTRL`) y tratamientos (`TREATx`).
+
 
 ```{r, child='Rmds/50_Experiment.Rmd'}
 ```
 
-
-***
-
-
+------------------------------------------------------------------------
 
 # Dispersión en los datos
 
-[START EXPANDIBLE]: #
-`r EXPAND_bx` Expand to read about the <b>meaning of dispersion</b></summary>
+`r EXPAND_bx` Expande si quieres saber más sobre <b>los códigos a continuación</b>
+</summary>
 
-En un experimento de RNA-seq, el mapeo de las lecturas sobre la referencia se esperaba que siguiera una distribución de Poisson en la que la varianza y la media de los recuentos (_counts_), como medida de la expresión, fueran iguales.
-Sin embargo, la variabilidad de los recuentos supera lo que admite el modelo de Poisson (que `varianza = media`) puesto que **la varianza de los recuentos supera con creces el valor de la media** (`varianza >> media`) debido a que los genes se expresan en distinta cantidad en cada célula de cada experimento.
-A este fenómeno se le denomina **sobredispersión** (_overdispersion_).
+La función `estimateDisp()` de [edgeR] se utiliza para evaluar la dispersión de los recuentos de genes en función de las comparaciones definidas en la matriz de diseño. A partir de la dispersión individual de cada gen, se estima la dispersión común, representada en el campo common.dispersion, y se calcula el BCV (biological coefficient of variation), que es la raíz cuadrada de esta dispersión. Los datos se evalúan en diferentes etapas: crudos, filtrados y normalizados, con la expectativa de que la dispersión disminuya en cada paso, lo que indicaría una mejora en la calidad de los datos. Se busca que el BCV se mantenga por debajo de 0.3-0.4, lo que sugiere réplicas técnicas o un experimento bien diseñado. La visualización de los BCV en función de la abundancia de genes permite evaluar si la variación biológica está relacionada con esta abundancia y ayuda a inferir si la dispersión trended se aproxima a una línea común.
 
-
-De ahí que la [binomial negativa][BN] sea un mejor ajuste, ya que es como una distribución de Poisson con un parámetro adicional que se denomina **dispersión**.
-Matemáticamente: 
-$$\sigma^2 = \mu + \alpha\mu^2$$
-donde $\sigma^2$ es la varianza, $\mu$ es la media y $\alpha$ el coeficiente de dispersión.
-Se deduce claramente que cuando $\alpha \rightarrow 0$, tenemos la distribución de Poisson, y también tenemos un experimento más coherente y menos disperso. Esto se observa claramente en la siguente gráfica:
-
-<div style="text-align: center;">
-![Figure of NB vs P](https://bioramble.files.wordpress.com/2016/01/nb_mean_var.png)
-</div>
-
-Por desgracia, **contamos con pocas réplicas por condición experimental en los experimentos de RNA-seq**, con lo que la estimación de la la varianza y su dispersión $\alpha$ no es muy robusta. 
-Las librerías que se usarán para calcular la [expresión diferencial][Differential expression] ya incluyen estrategias bayesinanas o de probabilidad (_likelyhood_) para lidiar con esta situación.
-
-Por tanto, calcular la dispersión no solo nos permite modelizar la distribución de los genes, sino conocer si el experimento y las manipulaciones realizadas ha mejorado o empeorado los datos.
-
-</details> 
-[END EXPANDIBLE]: #
+</details>
 
 ```{r, child='Rmds/60_Dispersion.Rmd'}
 ```
 
-
-***
-
-
+------------------------------------------------------------------------
 
 # Expresión diferencial
 
-RNA-Seq is a powerful tool for studying gene expression. **Differential gene expression** means that a gene is expressed differently in a series of biological conditions due to the process where different genes are activated in a cell, giving that cell a specific purpose that defines its function. Differential gene expression is extremely important because it allows living organisms, including human beings, to grow and develop into complex, multicellular beings with different tissues, cells, and organs. To unlock the underlying biological insights, the selection of appropriate data analysis software is essential. `DESeq2` and [edgeR] libraries were known to produce reproducible and trustworthy results when a few replicates were available [@Rapaport2013]. In fact,  It was recently demonstrated that different algorithms produce significant variations in the differentially expressed genes proposing `DESeq2` as the algorithm of choice [@Thawng2022aa; @Thawng2023aa]. However, when considering the false discovery rate, the classic Wicoxon rank-sum test (when more than 10 replicates are available) and the [limma]-voom` approach (when only a few replicates are available) perform clearly better than any other one [@Li2022cf].
+En este análisis, se evaluaron tres enfoques clave para la expresión diferencial de genes en RNA-seq. El primero, la prueba exacta (exact test), es rápida pero produce muchos falsos positivos. El segundo, el modelo lineal generalizado ajustado con quasi-likelihood (QLF), reduce los falsos positivos y mejora la corrección de la variabilidad biológica. Sin embargo, el tercer método, limma-voom GLM, da los mejores resultados al corregir la heterocedasticidad con voom(), ajustar el modelo con lmFit() y realizar un ajuste bayesiano con eBayes(). Además, la función treat() prioriza genes biológicamente más relevantes, consolidándolo como el enfoque más robusto.
 
-En el párrafo anterior queda claro que existen muchas formas de seleccionar los **DEG (genes con expresión diferencial)**. 
-La gran mayoría se basa en las veces que cambia la expresión (_fold change_) entre dos situaciones. Este cambio lo que vamos a calcular con varias pruebas estadísticas sustentadas en algoritmos distintos:
-
-* **Test exacto** basado en la _t_ de Student del paquete [edgeR]. Es fácil de implementar, pero va a dejar pasar muchos falsos positivos.
-* **Quasi-likelihood F-tests (QLF)** de [edgeR] que hace un [GLM] sabiendo que los datos se ajustan a una binomial negativa. El resultado es mucho más fiable que el simple test exacto de la _t_ de Student de [edgeR].
-* Ajuste puro a un **modelo lineal generalizado (GLM)** en el que se controlará la homoescedasticidad de los datos con la función `voom()` y luego se hará un análisis estadístico adaptado a la RNA-seq del paquete [limma]. 
-
-Al final compararemos estos resultados.
-
-```{r, child=c('Rmds/70_DEGs.Rmd', 'Rmds/75_GLM.Rmd')}
+```{r, child=c('Rmds/75_GLM.Rmd')}
 ```
 
+------------------------------------------------------------------------
 
-***
+# Comparación
 
-
-
-
-
-## Comparación
-
-Puesto que hemos visto que los distintos métodos y conjuntos de datos producen diferentes resultados, vamos a comparar el número de genes con expresión diferencial (DEGs) de cada uno de los métodos.
-Para ello, nos basaremos en la función `decideTests()` que nos devuelve la siguiente clasificación:
-
-* **NotSig** (`0`): gen no significativo
-* **Down** (`-1`): gen <span style="color:blue">subexpresado</span> o reprimido
-* **Up** (`+1`): gen <span style="color:red">sobreexpresado</span> o activado
-
-Compararemos según se usen los valores por defecto, los valores de `P` y `FC` definidos, tras un ajuste bayesiano o con `treat()`. Debido al uso incorrecto que se hace de los valores de `P` [@Amrhein2019; @Wasserstein2019], en la RNA-seq debemos combinar al menos dos criterios: `P` y `FC`.
+Se compara los resultados de análisis de expresión diferencial utilizando el método eBayes() en tres conjuntos de datos: originales en bruto, filtrados y normalizados, enfocándose en la comparación TREAT - `CTRL`. Se evalúan los resultados con los valores por defecto de `P` y sin filtrar por `FC`, creando un data frame que resume la cantidad de genes significativos. Luego, se genera un diagrama de Venn para visualizar las intersecciones de los genes diferencialmente expresados (`DEGs`) entre los métodos. A continuación, se repite el análisis utilizando valores configurados de `P` y `FC`, mostrando que se obtienen menos genes, pero con mayor relevancia biológica. Finalmente, se analiza el enfoque `treat()`, generando resultados similares y comparando también los `DEGs` a través de un diagrama de Venn.
 
 ```{r, child='Rmds/80_ComparaDEGs.Rmd'}
 ```
 
-
-***
-
-
-
-
+------------------------------------------------------------------------
 
 # DEGs per contrast
 
-Como el _script_ ejecuta todos los contrastes a la vez, vamos a ver cuál es el resultado que se ha obtenido, pero solo con la estrategia de GLM `limma-voom-treat`, que está claro que es la mejor. Luego lo grabaremos.
+Analizar la expresión diferencial de genes (DEGs) a través de diversas comparaciones utilizando métodos como eBayes() y treat(). Se comienza mostrando una tabla que resume el número de DEGs obtenidos en cada contraste y, posteriormente, se visualizan gráficos de dispersión (MD plots) para ambos métodos, destacando que los resultados de treat() están contenidos dentro de los de eBayes(). Se guardan los DEGs para cada contraste en archivos separados, utilizando topTable() para eBayes() y topTreat() para treat(), asegurando que se incluyan columnas relevantes como logFC, P-valor y B. Finalmente, se genera un archivo consolidado con todos los parámetros estadísticos calculados para cada contraste, facilitando así un análisis exhaustivo y accesible de los resultados.
 
 ```{r, child='Rmds/90_SaveFinal.Rmd'}
 ```
 
-
-
-
 ```{r, child=if (VERBOSE_MODE) 'Rmds/100_histoP.Rmd'}
 ```
 
+------------------------------------------------------------------------
+
+# Conclusiones de este trabajo
 
 
+En este trabajo, se ha evidenciado la versatilidad de RStudio para desarrollar análisis bioinformáticos completos, facilitando la manipulación y visualización de datos complejos. Sin embargo, se ha observado que trabajar con un conjunto de datos de librerías cortas puede complicar ciertos procesos que funcionan con normalidad en otros tipos de datos. A lo largo del análisis, se evaluaron diferentes métodos estadísticos, destacando el enfoque de limma-voom GLM, que demostró ser efectivo para la identificación de genes expresados diferencialmente en el contexto de las limitaciones impuestas por las librerías cortas. Esta combinación de herramientas y métodos ha permitido obtener resultados significativos, subrayando la importancia de elegir adecuadamente las técnicas analíticas en función de la naturaleza del dataset.
 
-
-***
-
-
-
-# Conclusiones
-
-1. No se deben usar los datos en bruto, sino que hay que retirar los que se expresan poco o su expresión resulta poco fiable. Si no lo hacemos obtendríamos miles de falsos positivos y miles de falsos negativos.
-
-2. El mejor método de normalización es el TMM incluido en `edgeR`, seguido del que se usa en `DESeq2`. 
-A esta conclusión se llega en bastantes artículos, como por ejemplo en @Lin2016,  @Dillies2013 y @Tam2015.
-
-3. Si el filtrado y la normalización están funcionando bien, los datos resultantes tendrán cada vez menos dispersión. También deberíamos ver que en los [MDS] e incluso en los [PCA], las réplicas van aglomerándose entre sí a la vez que se separan de las demás muestras.
-
-4. No existe ningún método infalible para los análisis de RNA-seq, ni usando los métodos basados en la modelización binomial negativa (`DESeq2`, `edgeR`), ni adaptando los métodos basados en distribuciones normales (`limma + voom`) [@Rapaport2013]. Es más, parece que el método no paramétrico de Wilcoxon sería el más apropiado [@Li2022cf], que daría resultados similares al de [GLM] `limma + voom`, mientras que el más permisivo (con más falsos positivos) sería el test exacto [eTest].
-
-5. Si vas a usar un método basado en [GLM], entonces tienes que corregir previamente la heteroescedascidad. 
-
-6. Cuando tenemos muchas muestras, el método que mejor funciona y resiste mejor la sobrecarga de trabajo y no se ven afectados por los valores extremos o atípicos es `limma + voom` [@Soneson2013].
-
-7. Detectar los [DEG] con la función `treat()` correspondiente devuelve menos genes pero con más relevancia biológica. Olvídate de los métodos `test()` y `eBayes()`.
-
-8. Nunca uses los valores de _P_ sin ajustar, ya que el _multitesting_ implícito en la RNA-seq hará que tus resultados carezcan de significado, y sean equivalentes a una selección al azar. 
-
-8. Los métodos no paramétricos como `NOISeq` o `SAMseq` necesitan como mínimo 5 réplicas para funcionar bien, mientras que los demás funcionan bien cuando hay 3 o menos réplicas [@GonzalezGayte2017].
-Por cuestión de costes, suele ser frecuente encontrarnos solo con 3 réplicas, sobre todo cuando utilizamos organismos no modelo; en cambio, con las muestras de humano sí que podemos encontrarnos muchas más réplicas, sobre todo si las descargamos del [TCGA][], [GEO][] o [ArrayExpress][].
-
-
-***
-
-
+------------------------------------------------------------------------
 
 # References
 
 Note that the reference csl style [can be changed](https://github.com/citation-style-language/styles) to a different style.
 
-<div id="refs"></div>
+::: {#refs}
+:::
 
-
-***
-
-
+------------------------------------------------------------------------
 
 # Additional readings
 
-* [Efficient library loading](https://www.r-bloggers.com/an-efficient-way-to-install-and-load-r-packages/)
-* [Differential expression analysis with edgeR](https://gist.github.com/jdblischak/11384914)
-* [Basic differential expression: EdgeR exact test](https://morphoscape.wordpress.com/2020/09/01/exact-tests-and-plots-with-edger-basic-differential-expression-analysis/)
-* [Differential expression analyses of RNA-seq experiments using quasi-likelihood methods (QLF)](http://www.statsci.org/smyth/pubs/QLedgeRPreprint.pdf)
-* [Advanced differential expression using generalised linear models (GLM)](https://morphoscape.wordpress.com/2020/09/26/generalized-linear-models-and-plots-with-edger-advanced-differential-expression-analysis/)
-* Bioinformatics Analysis of Omics Data with the [Shell, R](https://morphoscape.wordpress.com/2022/07/28/bioinformatics-analysis-of-omics-data-with-the-shell-r/) and [edgeR](https://morphoscape.wordpress.com/2022/08/09/downstream-bioinformatics-analysis-of-omics-data-with-edger/)
-* RNA-seq analysis is easy as 1-2-3: [artículo de 2018](https://doi.org/10.12688/f1000research.9005.3) y [paquete RNAseq123](http://bioconductor.org/packages/release/workflows/html/RNAseq123.html) en Bioconductor.
-* Varet et al. 2016 SARTools: A DESeq2- and EdgeR-Based R Pipeline for Comprehensive Differential Analysis of RNA-Seq Data. [_PLoS ONE_ 11(6): e0157022](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0157022), DOI [10.1371/journal.pone.0157022](https://doi.org/10.1371/journal.pone.0157022)
+-   [Efficient library loading](https://www.r-bloggers.com/an-efficient-way-to-install-and-load-r-packages/)
+-   [Differential expression analysis with edgeR](https://gist.github.com/jdblischak/11384914)
+-   [Basic differential expression: EdgeR exact test](https://morphoscape.wordpress.com/2020/09/01/exact-tests-and-plots-with-edger-basic-differential-expression-analysis/)
+-   [Differential expression analyses of RNA-seq experiments using quasi-likelihood methods (QLF)](http://www.statsci.org/smyth/pubs/QLedgeRPreprint.pdf)
+-   [Advanced differential expression using generalised linear models (GLM)](https://morphoscape.wordpress.com/2020/09/26/generalized-linear-models-and-plots-with-edger-advanced-differential-expression-analysis/)
+-   Bioinformatics Analysis of Omics Data with the [Shell, R](https://morphoscape.wordpress.com/2022/07/28/bioinformatics-analysis-of-omics-data-with-the-shell-r/) and [edgeR](https://morphoscape.wordpress.com/2022/08/09/downstream-bioinformatics-analysis-of-omics-data-with-edger/)
+-   RNA-seq analysis is easy as 1-2-3: [artículo de 2018](https://doi.org/10.12688/f1000research.9005.3) y [paquete RNAseq123](http://bioconductor.org/packages/release/workflows/html/RNAseq123.html) en Bioconductor.
+-   Varet et al. 2016 SARTools: A DESeq2- and EdgeR-Based R Pipeline for Comprehensive Differential Analysis of RNA-Seq Data. [*PLoS ONE* 11(6): e0157022](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0157022), DOI [10.1371/journal.pone.0157022](https://doi.org/10.1371/journal.pone.0157022)
 
-
-***
-
-
+------------------------------------------------------------------------
 
 # Information about this session
 

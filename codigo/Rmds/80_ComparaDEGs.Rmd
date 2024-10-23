@@ -1,16 +1,16 @@
 ### After eBayes()
 
-Vamos a comparar estos conjuntos de datos, pero solo para la primera comparación (`TREAT - CTRL`) que es la única que se ha hecho con todos los métodos:
+Se va a comparar las 2 clases de este proyecto a través de:
 
 * ***Raw-eB***: Los datos originales en bruto analizados `eBayes()`
 * ***Filt-eB***: Los datos originales filtrados analizados con `eBayes()`
-* ***exactTest***: Los datos normalizados analizados con el test exacto
-* ***QLFTest***: Los datos normalizados analizados obtenidos con `glmQLFTest()`
 * ***eBayes***: Los datos normalizados analizados con `eBayes()`
 
-La comparación se hará de dos maneras: con los valores por defecto de _P_ y `FC`, o con los valores configurados como umbral mínimo.
+La comparación se hará  con los valores por defecto de _P_ y `FC`, o con los valores configurados como umbral mínimo.
 
 #### Default _P_
+
+Se utiliza decideTests() para evaluar los resultados de tres análisis de expresión diferencial (raw, filtrados y normalizados) con eBayes. Genera un data frame que resume cuántos genes son significativos en cada comparación y muestra estos resultados de forma clara con kable(). Para avanzar, valida los resultados y considera crear un diagrama de Venn para visualizar las intersecciones entre los DEGs identificados por cada método, lo que te permitirá entender mejor la eficacia de cada enfoque.
 
 La función `decideTests()` tiene un valor por defecto de `P = 0.05`, pero no filtra por `FC`. Por tanto, nos quedamos con los genes que tienen un comportamiento fiable, independientemente de si cambian mucho o poco. Ojo, que para el [QLF] hay que utilizar la función `decideTestsDGE()`
 
@@ -18,61 +18,37 @@ La función `decideTests()` tiene un valor por defecto de `P = 0.05`, pero no fi
 # variables for further Venn
 dt.raw1 <- decideTests(v.fit.eB) # Raw + eB
 dt.filt1 <- decideTests(v.filt.fit.eB) # Filt + eB
-dt.eT1 <- decideTests(eTest) # eT
-dt.qlf <- decideTestsDGE(q.test) # QLF
 dt.norm1 <- decideTests(v.filt.norm.fit.eB) # Norm + eB
 
 t1 <- as.data.frame(summary(dt.raw1[, 1]))
 t2 <- as.data.frame(summary(dt.filt1[, 1]))
-t3 <- as.data.frame(summary(dt.eT1))
-t4 <- as.data.frame(summary(dt.qlf))
 t5 <- as.data.frame(summary(dt.norm1[, 1]))
 # construye un dataframe con los resultados sin P ni FC
-t6 <- cbind(t1, t2[,3], t3[,3], t4[,3], t5[,3])
+t6 <- cbind(t1, t2[,3], t5[,3])
 # renombra las columnas
-colnames(t6) <- c("eBayes() y P por defecto", "Contraste", "Raw-eB", "Filt-eB", "exactTest", "QLFTest", "eBayes")
+colnames(t6) <- c("eBayes() y P por defecto", "Contraste", "Raw-eB", "Filt-eB", "eBayes")
 kable(t6)
 ```
 
-Inspeccionemos el grado de coincidencia entre ellos con un diagrama de Venn:
+
+Se crea un diagrama de Venn para visualizar la superposición de genes diferencialmente expresados (DEGs) entre tres conjuntos de datos: los resultados de eBayes sobre datos originales (raw), filtrados (filt) y normalizados (norm). Primero, se identifican los índices de los genes significativos en cada conjunto y se eliminan las variables temporales para optimizar la memoria. Luego, se construye una lista con estos índices y se genera el diagrama de Venn, que muestra las intersecciones y proporciona una representación visual clara de la coincidencia entre los DEGs de los diferentes métodos de análisis.
 
 ```{r venn1}
 raw.degs <- which(dt.raw1[, 1] != 0)
 filt.degs <- which(dt.filt1[, 1] != 0)
-et.degs <- which(dt.eT1[, 1] != 0)
-qtest.degs <- which(dt.qlf[, 1] != 0)
 norm.degs <- which(dt.norm1[, 1] != 0)
 
-rm(dt.eT1, dt.raw1, dt.filt1, dt.norm1, dt.qlf)
-# Create the list to be analysed. Element list names will be used in the plot
+rm( dt.raw1, dt.filt1, dt.norm1)
+
 venn.list <- list(Raw_eB = raw.degs, 
                   Filt_eB = filt.degs, 
-                  ExactTest = et.degs,
-                  QLFTest = qtest.degs,
                   eBayes = norm.degs)
 
-# venn.plot <- venn.diagram(venn.list, NULL,
-#                           fill = c("green", "yellow", "red", "blue", "magenta"),
-#                           alpha = c(0.5, 0.5, 0.5, 0.5, 0.5),
-#                           cex = 2, cat.fontface=1,
-#                           category.names = names(venn.list),
-#                           imagetype = "png",
-#                           main = "DEGs using only P")
-# grid.draw(venn.plot)
 
 venn.matrix <- venn(venn.list, 
                     show.plot = TRUE, 
                     intersections = TRUE)
-title("DEGs using eBayes and default P")
-
-# to see the content of the diagram
-# print(str(venn.matrix))
-# We can store the intersections in a new object named inters
-# inters <- attr(venn.matrix,"intersections")
-
-# We can summarize the contents of each venn compartment, as follows:
-#  in 1) ConditionA only, 2) ConditionB only, 3) ConditionA & ConditionB
-# lapply(inters, head) 
+title("DEG que utilizan eBayes y P predeterminado")
 ```
 
 
@@ -89,13 +65,11 @@ Pasamos a la función `decideTests()` los valores configurados de _P_ y `FC`. Po
 
 t1 <- as.data.frame(summary(eB.status.p.fc[, 1]))
 t2 <- as.data.frame(summary(eB.filt.status.p.fc[, 1]))
-t3 <- as.data.frame(summary(eTest.status.p.fc))
-t4 <- as.data.frame(summary(q.test.dt))
 t5 <- as.data.frame(summary(eB.filt.norm.status.p.fc[, 1]))
 # construye un dataframe con los resultados con P, FC y eBayes
-t6 <- cbind(t1, t2[,3], t3[,3], t4[,3], t5[,3])
+t6 <- cbind(t1, t2[,3], t5[,3])
 # renombra las columnas
-colnames(t6) <- c("eBayes(), P y FC configurados", "Contraste", "Raw-eB", "Filt-eB", "exactTest", "QLFTest", "eBayes")
+colnames(t6) <- c("eBayes(), P y FC configurados", "Contraste", "Raw-eB", "Filt-eB", "eBayes")
 kable(t6)
 ```
 
@@ -104,26 +78,19 @@ Vamos a comparar los nuevos resultados:
 ```{r venn2}
 raw.degs <- which(eB.status.p.fc[, 1] != 0)
 filt.degs <- which(eB.filt.status.p.fc[, 1] != 0)
-et.degs <- which(eTest.status.p.fc[, 1] != 0)
-qtest.degs <- which(q.test.dt[, 1] != 0)
 norm.degs <- which(eB.filt.norm.status.p.fc[, 1] != 0)
 
 # Create the list to be analysed
 venn.list <- list(Raw_eB = raw.degs, 
                   Filt_eB = filt.degs, 
-                  ExactTest = et.degs,
-                  QLFTest = qtest.degs,
                   eBayes = norm.degs)
 
 venn.matrix <- venn(venn.list, 
                     show.plot = TRUE, 
                     intersections = TRUE)
-title("DEGs using eBayes and configured P and FC")
+title("DEG que utilizan eBayes y P y FC configurados")
 ```
 
-> **IMPORTANTE**: Cuando se aplica el filtro por _P_ y por _FC_, se obtienen menos genes con expresión diferencial, pero tienen más relevancia biológica
-
-> **IMPORTANTE**: Los análisis con `QLF Test` o con `eBayes` dan resultados muy parecidos y coincidentes.
 
 
 
@@ -133,61 +100,37 @@ En este caso, las muestras a comparar serán:
 
 * ***Raw-t***: Los datos originales en bruto analizados `treat()`
 * ***Filt-t***: Los datos originales filtrados analizados con `treat()`
-* ***exactTest***: Los datos normalizados analizados con el test exacto
-* ***QLFTreat***: Los datos normalizados analizados obtenidos con `glmTreat()`
 * ***Treat***: Los datos normalizados analizados con ``treat()`
 
-Puesto que hemos visto que es mejor filtrar a la vez por _P_ y _FC_, será el único análisis que haremos.
 
 ```{r decidetestPyFCytreat}
-# El de Raw ya se hizo antes en dt.raw
-# El de Filt ya se hizo antes en dt.filt
-# El eTest no se hace un treat, así que se toma el mismo valor de antes de t3 y et.deg
-# El de QLF ya se hizo antes en q.treat.dt
-# El de Treat ya se hizo antes en dt.norm
+
 
 t1 <- as.data.frame(summary(dt.raw[, 1]))
 t2 <- as.data.frame(summary(dt.filt[, 1]))
-# el t3 de exact test es el mismo de antes
-t4 <- as.data.frame(summary(q.treat.dt))
 t5 <- as.data.frame(summary(dt.norm[, 1]))
-# construye un dataframe con los resultados con P, FC y treat
-t6 <- cbind(t1, t2[,3], t3[,3], t4[,3], t5[,3])
+t6 <- cbind(t1, t2[,3], t5[,3])
 # renombra las columnas
-colnames(t6) <- c("treat(), con P y FC", "Contraste", "Raw-t", "Filt-t", "exactTest", "QLF Treat", "Treat")
+colnames(t6) <- c("treat(), con P y FC", "Contraste", "Raw-t", "Filt-t", "Treat")
 kable(t6)
 
-rm(t1, t2, t3, t4, t5, t6)
+rm(t1, t2, t5, t6)
 ```
 
 ```{r venn3}
 raw.degs <- which(dt.raw[, 1] != 0)
 filt.degs <- which(dt.filt[, 1] != 0)
-qtest.degs <- which(q.treat.dt[, 1] != 0)
 norm.degs <- which(dt.norm[, 1] != 0)
 
 # Create the list to be analysed
 venn.list <- list(Raw_t = raw.degs, 
                   Filt_t = filt.degs, 
-                  ExactTest = et.degs,
-                  QLFTreat = qtest.degs,
                   Treat = norm.degs)
 
 # venn.matrix will store all intersection information
 venn.matrix <- venn(venn.list, 
                     show.plot = TRUE, 
                     intersections = TRUE)
-title("DEGs using treat() and configured P and FC")
+title("DEG que utilizan treat() y P y FC configurados")
 ```
-
-> **IMPORTANTE**: Cuando se utiliza el **limma trend** con `treat()` está claro que bajan mucho el número de genes con expresión diferencial, y que ahora sí hay una diferencia seria entre el método QLF y el GLM: el GLM da resultados más precisos con menos falsos positivos
-
-Los datos en bruto son los que menos afectados se ven, (de lo mal que están). 
-
-> **IMPORTANTE**: No trabajes nunca sobre los datos en bruto. El QLF y el GLM son siempre preferibles al test exacto.
-
-
-<!-- ## Gene set enrchichment analysis -->
-
-<!-- Consultar la página <https://support.bioconductor.org/p/74899/> para las funciones `goana` y `kegga` de `limma` para hacer enriquecimiento con los `v.filt.fit.treat` y demás, y ver si hay diferencias importantes. Completarlo con <https://nbisweden.github.io/workshop-RNAseq/1905/lab_functional.html>. -->
 

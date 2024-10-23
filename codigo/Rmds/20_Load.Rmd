@@ -1,9 +1,6 @@
 
 ## Reading file(s)
 
-If `DATA_FILES` contains only one file, this is the table con convert in object. 
-But when several files are given in `DATA_FILES`, another [edgeR][] [@Robinson2010bis] function is used to load files and construct the `DEGlist` object. Look at function `LoadExpressionData()`.
-
 ```{r buildx}
 # use 'x' as a short name since it will be thoroughly used
 x <- LoadExpressionData(DATA_FILES, DATA_DIR, EXP_FACTORS, COLUMNS_TO_READ, OTHER_DATA)
@@ -14,7 +11,7 @@ rm(DATA_FILES, COLUMNS_TO_READ, OTHER_DATA)
 
 ## Assigning colours to factors
 
-A partir de los factores experimentales definidos en `EXP_FACTORS`, vamos a determinar cuántos factores diferentes hay (por si hay más de dos) y con ellos vamos a definir un color característico que se utilizará en las representaciones.
+A partir de los factores en `EXP_FACTORS`, se identifican los factores únicos y se asigna un color distintivo para cada uno, que se usará en las representaciones gráficas.
 
 ```{r FactorsColours}
 # convert experimental factors in colours
@@ -39,16 +36,15 @@ Colours              | `r toString(unique(EXP_COLORS))`
 
 ## Library sizes and MDS plots {#origSizeMDS}
 
-Let's plot the raw library sizes to see if they are equilibrated, and a multi-dimensional scaling ([MDS]) scatterplot of distances between the samples using the `plotMDS()`function, as well as pincipal component analysis ([PCA]) plot with the user-defnde function `PlotMyPCA(`, to show the relative similarities of the raw samples.
+Se grafican los tamaños de las librerías para verificar si están equilibrados, y se generan gráficos de escalamiento multidimensional (MDS) y de análisis de componentes principales (PCA) para mostrar las similitudes entre las muestras.
 
 [START EXPANDIBLE]: #
 `r EXPAND_bx` 
-Expand to read about <b>library size, MDS and PCA plots</b></summary>
+Expande más si quieres leer sobre <b> tamaños de librería MDS and PCA plots</b></summary>
 
-* Raw library sizes to see if they are balanced. 
-`r NOTE_bx` Ideally, library sizes must be similar in all samples to avoid bias in type I error rate and FDR (_false discovery rate_, the type II error rate). Methods better supporting unequal library sizes are `voom()` and `glm()` broth from `limma` [@Law2014tt]. They will be used for differential expression in this script.
-* _Multidimensional scaling_ (**[MDS]**) scatterplot of distances between the samples to reduce de dimensionality to two dimensions in an iterative process to show the sample relative similarities. Replicates are expected to form clusters, that is, [the distance between replicates is shorter than with other samples](https://richardlent.github.io/post/multivariate-analysis-with-r/#multidimensional-scaling).
-* _Principal components analysis_ (**[PCA]**) [@Jolliffe2016dp] of correlation or covariance values based on the user-defined function `PlotMyPCA()`. It is an easy and fast way to analyse data by a dimensional reduction of multivariate data. Replicates should be correlate, so they are expected to form clusters when uncorrelated (principal components: PC) are used. The [PCs are linear combinations of the original variables that maximise the dispersion of samples](https://richardlent.github.io/post/multivariate-analysis-with-r/#principal-components-analysis).
+* Los tamaños de biblioteca sin procesar se revisan para verificar si están equilibrados, lo cual es importante para evitar sesgos en los errores tipo I y la tasa de descubrimiento falso (FDR). Métodos como `voom()` y `glm()` de `limma` manejan mejor las bibliotecas desiguales.
+* El escalamiento multidimensional (MDS) reduce las dimensiones a dos para mostrar las similitudes entre muestras, donde se espera que las réplicas formen grupos.
+* El análisis de componentes principales (PCA) analiza las correlaciones entre las muestras, permitiendo visualizar agrupaciones de réplicas.
 
 </details> 
 [END EXPANDIBLE]: #
@@ -78,13 +74,27 @@ legend("topleft", legend = as.vector(UNIQ_FACTORS), fill = unique(EXP_COLORS))
 pca_sum <- PlotMyPCA(x$counts, "PCA of raw data", thisScale = FALSE)
 ```
 
+[START EXPANDIBLE]: #
+`r EXPAND_bx` 
+Expande más si quieres leer sobre <b> Análisis Gráfico </b></summary>
+
+Se presentan tres gráficas:
+
+* **Gráfico de barras del tamaño de las librerías**: Se visualizan los tamaños de las librerías, donde los archivos correspondientes a Ler (SRR392118, SRR392119, SRR392120, SRR392121) están en rojo y los de C24 (SRR392122, SRR392123) en verde. La gráfica muestra un ligero desequilibrio en los tamaños, lo que sugiere la necesidad de minimizar el efecto de la librería.
+
+* **Gráfico de escalamiento multidimensional (MDS)**: Este gráfico representa las similitudes entre las réplicas. Las librerías LER se agrupan de manera efectiva, y en general, se observa un buen rendimiento en la separación de las dos condiciones.
+
+* **Análisis de componentes principales (PCA)**: Este gráfico realiza una reducción dimensional de la varianza. Aunque muestra que las muestras de C24 son más similares entre sí, también las sitúa más cerca de la otra condición, lo que no es el resultado deseado.
+
+</details> 
+[END EXPANDIBLE]: #
+
 
 ## Save raw counts 
 
-Raw counts are saved as _tab separated values_ (**.tsv**) file, where rows are gene codes and columns are experimental data. The user-defined function `SaveTSV()` will be used from now on to save data.
-
+Los conteos sin procesar se guardan en un archivo de _valores separados por tabulaciones_ (**.tsv**), donde las filas son códigos de genes y las columnas datos experimentales. Se utilizará la función definida por el usuario `SaveTSV()` para guardar los datos.
 
 ```{r datatable}
 fileName <- SaveTSV(x$counts, "rawData-")
-message("Raw counts table for all genes was saved in file", "\n", fileName)
+message("La tabla de recuentos brutos de todos los genes se guardó en un archivo", "\n", fileName)
 ```

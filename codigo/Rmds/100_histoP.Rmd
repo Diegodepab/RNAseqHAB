@@ -4,16 +4,10 @@
 
 # Additional comparisons
 
-Other graphical representations to inspect the results and confirm which analysis is the best one.
-
 
 ## _P_ values
 
-When the null hypothesis is true for every comparison, [the p-values should be uniformly distributed and we expect to have false detections](https://www.bioconductor.org/packages/devel/data/experiment/vignettes/ChimpHumanBrainData/inst/doc/DiffExpressVignette.pdf). 
-In the more usual situation that some of the genes differentially expressed, we will have both **false postives** (false detections) and **false negatives** (false nondetections). 
-As simple way of visualizing what to expect is to plot a histogram of _P_-values for each contrast.
-
-Let's see the difference of adjusted _P_-values distribution for `eBayes()` and `treat()` results
+Se extrae el nombre del primer contraste desde las columnas de valores p de los resultados obtenidos con eBayes y genera histogramas para visualizar la distribución de estos valores p. Primero, se crean histogramas para los datos antes de aplicar eBayes() y treat(), usando los valores p de los datos originales. Luego, se crean histogramas para los datos filtrados y normalizados, mostrando cómo varían los valores p tras el análisis. Esto permite comparar visualmente la efectividad de ambos métodos en el primer contraste.
 
 ```{r P-histograms, fig.width=6, fig.height=4, out.width=c('33%', '33%', '33%'), fig.show='hold'}
 theContrast <- colnames(v.fit.eB$p.value)[1]
@@ -21,122 +15,13 @@ theContrast <- colnames(v.fit.eB$p.value)[1]
 # first row, data after eBayes()
 hist(v.fit.eB$p.value[, 1], 
      main = paste(theContrast, ": ", RAW_TXT, "eBayes"))
-hist(q.test$table$PValue, 
-     main = paste(theContrast, ": QLF test"))
 hist(v.filt.norm.fit.eB$p.value[, 1], 
      main = paste(theContrast, ": eBayes"))
 
 # second row, data after treat()
 hist(v.fit.treat$p.value[, 1], 
      main = paste(theContrast, ": ", RAW_TXT, "treat()"))
-hist(q.treat$table$PValue, 
-     main = paste(theContrast, ": ", "QLF treat"))
 hist(v.filt.norm.fit.treat$p.value[, 1], 
      main = paste(theContrast, ": ", "treat()"))
 ```
 
-> **IMPORTANTE**: La forma en la que se distribuyen los valores de _P_ refleja con claridad por qué los ajustes con `treat()` son más rigurosos que con `test()`: las columnas de `P > 0,7` son más altas mientras que baja la de `P < 0,05`.
-
-
-## Comparative volcano plots
-
-Vamos a ver dónde aparecen los DEGs obtenidos con cada método en los distintos conjuntos de genes que hemos analizado.
-Para ello, representamos los datos que se han guardado de GLM y se colorean en función de dónde caen los DEG que se han determinado con los otros análisis.
-
-```{r volcano1, fig.width=6, fig.height=6, out.width=c('33%', '33%', '33%'), fig.show='hold'}
-# define -1, 0 and 1 for each gene ID; 
-# only the first column (first contrast) will be used
-colours.norm <- dt.norm[rownames(table.to.save.glm_treat), 1] + 3
-PlotMyVolcano(x = table.to.save.glm_treat$logFC,
-              y = -log10(table.to.save.glm_treat$adj.P.Val),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[1]),
-              Ylegend = names(table.to.save.glm_treat[5]),
-              titleText = "GLM-Treat FINAL")
-
-colours.norm <- dt.filt[rownames(table.to.save.glm_treat), 1] + 3
-PlotMyVolcano(x = table.to.save.glm_treat$logFC,
-              y = -log10(table.to.save.glm_treat$adj.P.Val),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[1]),
-              Ylegend = names(table.to.save.glm_treat[5]),
-              titleText = "GLM-Treat, coloreados como FILT")
-
-colours.norm <- dt.raw[rownames(table.to.save.glm_treat), 1] + 3
-PlotMyVolcano(x = table.to.save.glm_treat$logFC,
-              y = -log10(table.to.save.glm_treat$adj.P.Val),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[1]),
-              Ylegend = names(table.to.save.glm_treat[5]),
-              titleText = "GLM-Treat, coloreados como RAW")
-
-colours.norm <- q.treat.dt[rownames(table.to.save.glm_treat), 1] + 3
-PlotMyVolcano(x = table.to.save.glm_treat$logFC,
-              y = -log10(table.to.save.glm_treat$adj.P.Val),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[1]),
-              Ylegend = names(table.to.save.glm_treat[5]),
-              titleText = "GLM-Treat, coloreados como QLFtreat")
-
-colours.norm <- q.test.dt[rownames(table.to.save.glm_treat), 1] + 3
-PlotMyVolcano(x = table.to.save.glm_treat$logFC,
-              y = -log10(table.to.save.glm_treat$adj.P.Val),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[1]),
-              Ylegend = names(table.to.save.glm_treat[5]),
-              titleText = "GLM-Treat, coloreados como QLFtest")
-
-colours.norm <- eTest.status.p.fc[rownames(table.to.save.glm_treat), 1] + 3
-PlotMyVolcano(x = table.to.save.glm_treat$logFC,
-              y = -log10(table.to.save.glm_treat$adj.P.Val),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[1]),
-              Ylegend = names(table.to.save.glm_treat[5]),
-              titleText = "GLM-Treat, coloreados como ExactTest")
-```
-
-
-## Useless volcano plots
-
-Otros volcanes ilustrativos, pero sin mayor interés para entender mejor en qué consisten los distintos valores que se han guardado para cada transcrito.
-
-```{r volc2, fig.width=9, fig.height=3}
-par(mfrow = c(1,3))
-# recuperamos los colores del grupo de interés
-colours.norm <- dt.norm[rownames(table.to.save.glm_treat), ] + 3
-PlotMyVolcano(x = table.to.save.glm_treat$t,
-              y = -log10(table.to.save.glm_treat$adj.P.Val),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[3]),
-              Ylegend = names(table.to.save.glm_treat[5]),
-              titleText = "GLM, t vs P-adj")
-
-PlotMyVolcano(x = table.to.save.glm_treat$AveExpr,
-              y = -log10(table.to.save.glm_treat$adj.P.Val),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[2]),
-              Ylegend = names(table.to.save.glm_treat[5]),
-              titleText = "GLM, AveExpr (A) vs P-adj")
-
-PlotMyVolcano(x = table.to.save.glm_treat$logFC,
-              y = -log10(table.to.save.glm_treat$P.Value),
-              theCols = colours.norm,
-              Xlegend = names(table.to.save.glm_treat[1]),
-              Ylegend = names(table.to.save.glm_treat[4]),
-              titleText = "GLM, logFC (M) vs P")
-
-```
-
-## _P_ frente a _P_ ajustada
-
-Por último, comparemos los histogramas de los datos guardados del GLM antes y después del ajuste de la _P_.
-
-```{r histolast, fig.width=8, fig.height=4}
-par(mfrow = c(1,2))
-hist(table.to.save.glm_treat$P.Value, 
-     main = paste(colnames(table.to.save.glm_treat)[4], ": GLM normalizado"))
-
-hist(table.to.save.glm_treat$adj.P.Val, 
-     main = paste(colnames(table.to.save.glm_treat)[5], ": GLM normalizado"))
-
-```

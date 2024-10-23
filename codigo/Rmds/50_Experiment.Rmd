@@ -1,6 +1,6 @@
 ## The design as a matrix
 
-Lo primero es crear una matriz en la que se indique, para dada muestra (filas), a qué condición experimental (de la constante `EXP_FACTORS`) está asignada.
+Matriz que muestra para que condición fue creada cada dato.
 
 ```{r design}
 # define el diseño en función de los grupos definidos al cargar los datos
@@ -13,7 +13,7 @@ kable(design, align = "c", caption = "Table describing the experimental design")
 
 ## Comparaciones (contrastes)
 
-Ahora hay definir los contrastes, o sea, qué comparaciones de dos en dos se van a realizar. Para ello utilizaremos el contenido de `CONTRASTS` que definimos en el fichero de configuración y que internamente se ha convertido en la variable `allContrasts`. Necesitamos también el `design` definido antes.
+En este caso al tener solo el grupo Ler y C24, solo se compararán estas dos condiciones.
 
 ```{r contrastes, collapse=TRUE}
 contr.matrix <- makeContrasts(contrasts = allContrasts, levels = colnames(design))
@@ -21,11 +21,17 @@ contr.matrix <- makeContrasts(contrasts = allContrasts, levels = colnames(design
 kable(contr.matrix, align = "c", caption = "Table of contrast that will be analysed")
 ```
 
-El significado de los valores de la tabla anterior es el siguiente:
+[START EXPANDIBLE]: #
+`r EXPAND_bx` Expande más si quieres leer sobre <b>el significado de los valores de la tabla anterior es el siguiente:</b></summary>
 
 * **0** indica que la muestra de esa fila no se utilizará en la comparación indicada en la columna.
 * **1** indica que la muestra estará en el numerador del cociente, o sea, que los genes con `logFC` positivo se sobreespresarán en ella
 * **-1** indica que la muestra estará en el denominador del cociente, o sea, que los genes con `logFC` positivo se subespresarán en ella
+
+</details> 
+[END EXPANDIBLE]: #
+
+
 
 <!-- Finalmente, con los GLM también podemos analizar **covariantes**, es decir si hay dos o más factores que interaccionan. -->
 <!-- Para ello, además de los factores experimentales incluidos en `x$samples$group`, teníamos que haber añadido otras columnas de factores (tipo celular, valor de RIN, edad, tiempo de muestreo, etc.). -->

@@ -1,6 +1,7 @@
 # configure_wf for RSeqHAB
-# Gonzalo Claros
-# 2024-10-10
+# Autor original: Gonzalo Claros
+# versión creada por: Diego De Pablo (tarea 3.3)
+# 2024-10-18
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # NO TOCAR: ARRANQUE LIMPIO ####
@@ -19,12 +20,12 @@ graphics.off()   # cierra todos los gráficos abiertos
 # Example:
 #   PROJECT_NAME <- "Un análisis del cáncer de mama del ratón"
 
-PROJECT_NAME <- "Cáncer de mama en los ratones"
+PROJECT_NAME <- "Uso y mejora del RNAseqHAB de Arabidopsis (proyecto PRJNA156363)"
 # //////////////////////////////////////
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# RUTA A LA CARPETA QUE CONTIENE EL CÓDIGO ####
+# RUTA A LA CARPETA QUE CONTIENE EL CÓDIGO ####data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAASCAYAAABB7B6eAAABDklEQVR4Xp2UMaoCMRRFFcHCxsrO0tba/i/ADfwV/A2ICFYW7kAY/CSZOGYgnVjbW9taugFbG8f3OpO5A3lzIFh4Dg4ON53VelPp3NWOsW7R+SLVq1FVVbchfhtz/JV6EO99vyF+Ket+pB4ky/ywIX5qXUylHmRfFGMUm9w9+DupB/k/HCY4Lu9K+ZHUgyhbzlBM55pl54HUgxhTzlGscneil92TehBljn9xyMfYctfGq0HSMo748BO38QJ4PCS9UcSjk3oBPBqSXijisUm9AB6L5tGAiEcm9QJ4JDwWFMVDS/EC+FdJuqEovipSvAD+v0i6oCi+7FK8AH7T2roCRfF1neLVIGmLIvpctvFiPtxv6UGYMompAAAAAElFTkSuQmCC
 #
 # Tendrás que poner la ruta (path) a la carpeta "RNAseqHAB" en tu ordenador
 # No olvides acabarla con una "/"
@@ -32,7 +33,7 @@ PROJECT_NAME <- "Cáncer de mama en los ratones"
 # Example:
 #   SOURCE_DIR <- "~/usr/local/mycodingfiles/"
 
-SOURCE_DIR <- "~/Documents/MisScriptsR/HAB-RNAseq/"
+SOURCE_DIR <- "~/Descargas/herramientas/tema3/RNAseqHAB/"
 # //////////////////////////////////////
 
 
@@ -61,12 +62,12 @@ VERBOSE_MODE <- TRUE
 #
 # Tendrás que poner la ruta (path) a la carpeta de tu ordenador
 # donde estés los datos que vas a analizar
-# No olvides acabarla con una "/"
+# No olvides acabarla con una "/" /home/diegodepab/Descargas/herramientas/tema3/Dataset/GSE63310_RAW/
 #
 # Example:
 #   DATA_DIR <- "~/Documents/My_MA_data/this_experiment/"
 
-DATA_DIR <- "~/prueba/Rseq_Mouse/"
+DATA_DIR <- "~/Descargas/herramientas/tema3/Dataset/"
 # //////////////////////////////////////
 
 
@@ -80,22 +81,19 @@ DATA_DIR <- "~/prueba/Rseq_Mouse/"
 #
 
 # define every expresion count table
-DATA_FILES <- c("GSM1545538_purep53.txt",
-               "GSM1545539_JMS8-2.txt",
-               "GSM1545542_JMS8-5.txt",
-               "GSM1545535_10_6_5_11.txt", 
-               "GSM1545541_JMS8-4.txt",
-               "GSM1545545_JMS9-P8c.txt",
-               "GSM1545536_9_6_5_11.txt", 
-			         "GSM1545540_JMS8-3.txt", 
-			         "GSM1545544_JMS9-P7c.txt")
+DATA_FILES <- c("kallisto_18.tabular",
+                "kallisto_19.tabular",
+                "kallisto_20.tabular",
+                "kallisto_21.tabular", 
+                "kallisto_22.tabular",
+                "kallisto_23.tabular")
 
 # define the removable initial part of each file 'name'
-CHARS_TO_REMOVE <- 11 # the 11 first chars of all file names will be removed.
+CHARS_TO_REMOVE <- 9 # the 9 first chars of all file names will be removed.
 
 # define columns to read from each file
-# in Mouse case, col1 contains the ID, col3 contains counts
-COLUMNS_TO_READ <- c(1,3)
+# in Arabidopsis case, col1 contains the ID, col4 contains est_counts
+COLUMNS_TO_READ <- c(1,4)
 
 # if you have the expression table, use
 # DATA_FILES <- "mouseBreast_raw_counts2.tsv"
@@ -109,9 +107,8 @@ OTHER_DATA <- list(IDs = "GeneCode", firstCol = 1, lastCol = 6)
 #
 # define EVERY experimental condition to analyse. CTRL and TREAT are necessary
 
-CTRL <- "Basal"
-TREAT <- "LP"
-TREAT2 <- "ML"
+CTRL <- "Ler"
+TREAT <- "C24"
 # ///////////////////////////////////////
 
 
@@ -124,9 +121,8 @@ TREAT2 <- "ML"
 # EXP_CONDITIONS <- c(CTRL, CTRL, CTRL, TREAT, TREAT, TREAT, TREAT2, TREAT2, TREAT2)
 
 # vector of factors corresponding to each file or column in DATA_FILES
-EXP_CONDITIONS <-  c(rep(CTRL, 3), rep(TREAT, 3), rep(TREAT2,  3))
+EXP_CONDITIONS <-  c(rep(CTRL, 4), rep(TREAT, 2))
 # ///////////////////////////////////////
-
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # DEFINE LOS CONTRASTES A ANALIZAR ####
@@ -136,11 +132,9 @@ EXP_CONDITIONS <-  c(rep(CTRL, 3), rep(TREAT, 3), rep(TREAT2,  3))
 # aañadido todas a la lista de contrastes
 #
 C1 <- c(TREAT, CTRL)
-C2 <- c(TREAT2, TREAT)
-C3 <- c(TREAT2, CTRL)
 
 # Now, convert these contrasts in list with list(). Do not forget any one!
-CONTRASTS <- list(C1, C2, C3)
+CONTRASTS <- list(C1)
 # ///////////////////////////////////////
 
 
@@ -153,6 +147,8 @@ CONTRASTS <- list(C1, C2, C3)
 #
 # Example:
 # MIN_CPM <- 1
+# Probe con 0.5, 0.75, 0.9, 1, 1.5, etc 
+
 
 MIN_CPM <- 0.5
 # ///////////////////////////////////////
@@ -166,7 +162,7 @@ MIN_CPM <- 0.5
 # Using treat(), the FC should be low (2 is high)
 #
 # Example:
-#   FC <- 2
+#   FC <- 2 lo mejor es entre 1,5 a 2. con menos de 1,2 esta meh 
 
 FC <- 1.5
 # /////////////////////////////
@@ -181,7 +177,7 @@ FC <- 1.5
 # Example:
 #   P <- 0.01
 
-P <- 0.05
+P <- 0.01
 # //////////////////////////
 
 

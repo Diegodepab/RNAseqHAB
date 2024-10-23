@@ -1,16 +1,14 @@
 ## Factores de normalización 
 
-La función `calcNormFactors()` supone que la mayoría de los genes no cambia y compara las cuentas totales de los que más cambian entre las muestras para calcular el **factor de escalado** que disminuye al mínimo las diferencias de `logFC` entre ellas. 
-Cuanto más cercano a 1 esté el factor, menos transformación se necesita. 
+La función `calcNormFactors()` asume que la mayoría de los genes son estables y utiliza las cuentas de los genes más variables entre muestras para calcular un **factor de escalado**, minimizando las diferencias de `logFC`. Un factor cercano a 1 indica que se requiere menos transformación. Se procederá a normalizar los datos utilizando el filtro riguroso, que ha demostrado ser el más adecuado.
 
-Vamos a normalizar los datos con el filtro riguroso, que hemos visto que es el más apropiado
 
 ```{r NormFacts}
 x.filt.norm <- calcNormFactors(x.filt, method = "TMM")
 cat("Resulting normalization factors:\n", x.filt.norm$samples$norm.factors, "\n")
 ```
 
-Representemos ahora estos valores para apreciar mejor si están muy dispersos o no. Lo ideal es que en la primera no haya valores extremos (_outliers_) fuera de los cuartiles (en caso de haber alguno, podría plantearse su eliminación del análisis):
+Representemos ahora estos valores para apreciar mejor si están muy dispersos:
 
 ```{r NormFactPlot, fig.width=5, fig.height=5, out.width=c('50%', '50%'), fig.show='hold'}
 boxplot(x.filt.norm$samples$norm.factors, 
@@ -31,20 +29,13 @@ abline(h = 1.0, lty = 3)
 
 ## Normalizados frente a originales  {.tabset}
 
-Definamos unas constantes que nos van a facilitar la vida posterior:
-
-```{r textConstt}
+```{r textConstt, include=FALSE}
 RAW_TXT <- "Raw data"
 FILT_TXT <- "Filtered data"
 NORM_TXT <- "Norm+filt data"
 ```
 
-
-
-### ¿Más uniformes? {-}
-
-Comparemos la distribución de los valores de cada muestra tras filtrado y normalización.
-Lo esperable es que sean más homogéneos y uniformes (luego comparables) que los originales.
+La distribución de los valores de cada muestra tras filtrado y normalización.
 
 ```{r ComparaNorm, fig.width=4, fig.height=5, out.width=c('33%', '33%', '33%'), fig.show='hold'}
 # vamos a usar las logCPM para inspeccionarlo
@@ -67,15 +58,12 @@ boxplot(x.filt.norm.lcpm,
         ylab = "Log-cpm")
 ```
 
-Se ve que, en `r NORM_TXT`, las medianas están alineadas y los intervalos de los cuartiles son casi idénticos en todas las muestras.
-
-> **IMPORTANT:** Any sample with outlier scaling factor and quartile distribution should be removed to improve the analysis.
+Efectivamente se cumple lo esperado al normalizar, mostrandose más homogeneo todo.
 
 
+### Uso de MDS y PCA (Normalizado) {-}
 
-### ¿Se agrupan mejor? {-}
-
-Vamos a volver a hacer la representación de los [MDS] para ver si el agrupamiento se mantiene, se mejora o empeora. En caso de empeorar, tenemos un problema. La comparamos con un análisis de componentes principales ([PCA]).
+al hacer la representación de los [MDS] para ver si el agrupamiento mejora.
 
 ```{r MDStrasNorm, fig.width=8, fig.height=5, }
 par(mfrow = c(1, 2))
@@ -88,9 +76,15 @@ plotMDS(x.filt.norm,
 PlotMyPCA(x.filt.norm.lcpm, "Sample similarities by PCA")
 ```
 
-> **IMPORTANT:** If component contribution of both axis are greater than [before][Visualización del filtrado], normalisation is expected to improve data quality.
 
+[START EXPANDIBLE]: #
+`r EXPAND_bx` 
+Expande más si quieres leer sobre <b> comparación de la normalización: </b></summary>
 
+No existe un gran cambio, no obstante si vemos una mejor distribución entre grupos de la misma condición. lo que sugiere que la normalización, aunque pueda aumentar la dispersión en algunos casos, pero muestra una mejora en la consistencia de los datos trabajados.
+
+</details> 
+[END EXPANDIBLE]: #
 
 
 ## Save normalised data
@@ -110,4 +104,6 @@ message("TMM-normalised **counts** were saved in\n", fileName)
 
 rm(normCPMs, norm_counts, norm_count_matrix)
 ```
+
+
 
